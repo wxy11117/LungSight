@@ -1,0 +1,47 @@
+/* Account registration shares the workspace palette; no profile storage in browser. */
+.registration-shell .auth-companions-frame { display: block; width: min(100%, 600px); height: 750px; border: 0; background: transparent; color-scheme: normal; }
+.registration-shell { background: var(--workspace-backdrop); color: var(--account-text); grid-template-columns: minmax(320px, .9fr) minmax(460px, 1.1fr); }
+.registration-shell .auth-story { background: var(--workspace-stage); border-color: var(--account-border); position: sticky; top: 0; height: 100dvh; min-height: 640px; }
+.registration-shell .auth-story h1 { color: var(--account-text); font-size: clamp(38px, 3.8vw, 62px); line-height: 1.25; }
+.registration-shell .auth-story-copy>p, .registration-shell .auth-feature-list small, .registration-shell .auth-card-title p, .registration-shell .auth-switch, .registration-shell .auth-story footer { color: var(--account-muted); line-height: 1.8; }
+.registration-shell .auth-brand { color: var(--account-text); }
+.registration-shell .auth-story-copy>span, .registration-shell .auth-card-title>span, .registration-shell .auth-feature-list i, .registration-shell .auth-switch button { color: var(--account-accent); }
+.registration-shell .auth-feature-list article { background: var(--account-field); border-color: var(--account-border); }
+.registration-shell .auth-panel { background: radial-gradient(ellipse at 15% 15%, color-mix(in srgb, var(--account-accent) 7%, transparent), transparent 62%), var(--workspace-backdrop); padding: 36px 28px; align-items: center; }
+.registration-shell .auth-card { width: min(100%, 650px); padding: 32px; color: var(--account-text); background: var(--account-surface); border-color: var(--account-border); box-shadow: 0 20px 65px #00000018; }
+.registration-shell .auth-card-title { margin: 28px 0 20px; }
+.registration-shell .auth-card-title p { font-size: 12px; }
+.registration-shell .auth-tabs { background: var(--account-field); border-color: var(--account-border); }
+.registration-shell .auth-tabs button { color: var(--account-muted); }
+.registration-shell .auth-tabs button.active, .registration-shell .auth-submit { color: #09212b; background: var(--account-gradient); }
+.registration-fields { margin: 0; padding: 0; border: 0; min-width: 0; display: flex; flex-direction: column; gap: 17px; }
+.registration-fields label { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.registration-shell .auth-form label>span { color: var(--account-text); font-size: 12px; }
+.registration-shell .auth-form input:not([type="checkbox"]), .registration-shell .auth-form select { width: 100%; min-width: 0; min-height: 46px; padding: 10px 12px; border: 1px solid var(--account-border); border-radius: 10px; background: var(--account-field); color: var(--account-text); font: inherit; font-size: 13px; }
+.registration-shell .auth-form input::placeholder { color: var(--account-muted); opacity: .85; }
+.registration-shell :is(input, select, button, summary, a):focus-visible { outline: 2px solid var(--account-accent); outline-offset: 3px; }
+.registration-shell input[readonly] { opacity: .75; }
+.registration-shell button:disabled, .registration-shell fieldset:disabled { opacity: .65; }
+.registration-steps { list-style: none; display: grid; grid-template-columns: repeat(3, 1fr); padding: 0; margin: 0 0 24px; gap: 8px; }
+.registration-steps li { display: flex; align-items: center; gap: 8px; color: var(--account-muted); font-size: 12px; }
+.registration-steps b { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--account-border); }
+.registration-steps .reached { color: var(--account-accent); }
+.registration-steps [aria-current="step"] b { background: var(--account-gradient); color: #09212b; border-color: transparent; }
+.registration-grid { display: grid; grid-template-columns: 1fr 1.8fr; gap: 12px; }
+.registration-hint { font-size: 11px; line-height: 1.8; color: var(--account-muted); margin: 0; }
+.registration-summary { display: grid; gap: 6px; padding: 14px; border: 1px solid var(--account-border); border-radius: 12px; background: var(--workspace-soft); }
+.registration-summary strong { font-size: 14px; }.registration-summary small { color: var(--account-muted); }
+.auth-identity-tabs { display: flex; gap: 18px; border-bottom: 1px solid var(--account-border); }
+.auth-identity-tabs button { padding: 0 0 10px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--account-muted); font-size: 13px; cursor: pointer; }
+.auth-identity-tabs button[aria-pressed="true"] { color: var(--account-accent); border-bottom-color: var(--account-accent); font-weight: 700; }
+.auth-phone-field { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 8px; }
+.registration-actions { display: flex; gap: 12px; margin-top: 4px; }.registration-actions .auth-submit { flex: 1; margin: 0; }
+.registration-back { border: 1px solid var(--account-border); border-radius: 10px; padding: 0 16px; background: var(--account-field); color: var(--account-text); cursor: pointer; }
+.registration-privacy { padding: 12px; border: 1px solid var(--account-border); border-radius: 10px; font-size: 12px; color: var(--account-muted); line-height: 1.8; }
+.registration-privacy summary { color: var(--account-accent); cursor: pointer; }
+.registration-shell .auth-consents label { flex-direction: row; align-items: flex-start; gap: 9px; }
+.registration-shell .auth-consents input { margin-top: 3px; flex-shrink: 0; }
+.registration-shell .auth-consents label>span { font-size: 11px; line-height: 1.7; color: var(--account-muted); }
+.registration-shell .auth-notice a { display: inline-block; margin-left: 8px; text-decoration: underline; }
+@media(max-width:1000px) { .registration-shell { grid-template-columns: 1fr; }.registration-shell .auth-story { position: relative; height: auto; min-height: 0; padding: 22px 24px; }.registration-shell .auth-story-copy, .registration-shell .auth-story footer { display: none; }.registration-shell .auth-panel { min-height: calc(100dvh - 90px); align-items: start; padding: 24px 16px; } }
+@media(max-width:520px) { .registration-shell .auth-card { padding: 22px 18px; }.registration-grid { grid-template-columns: 1fr; }.auth-phone-field { grid-template-columns: 125px minmax(0, 1fr); }.registration-shell .auth-form select { padding-left: 8px; }.registration-steps li { gap: 5px; font-size: 11px; } }

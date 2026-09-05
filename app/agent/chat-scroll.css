@@ -1,0 +1,37 @@
+/* Bound all three columns to the viewport; only the message pane consumes spare height. */
+main.rag-shell { display: flex; flex-direction: column; height: 100vh; height: 100dvh; min-height: 0; overflow: hidden; }
+.rag-shell>.rag-topbar { flex: 0 0 auto; }
+.rag-shell>.rag-workspace { flex: 1 1 0; height: auto; min-height: 0; grid-template-rows: minmax(0, 1fr); }
+.rag-workspace>.chat-stage { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.chat-stage>.chat-context-bar, .chat-stage>.rag-alert, .chat-stage>.chat-composer, .chat-stage>.chat-disclaimer { flex: 0 0 auto; }
+.chat-stage>.chat-context-bar { max-height: 28dvh; overflow-y: auto; }
+.chat-stage>.rag-alert { max-height: 18dvh; overflow-y: auto; }
+.chat-stage>.message-pane { position: relative; flex: 1 1 0; min-height: 0; min-width: 0; }
+.message-pane>.message-scroll {
+  height: 100%; min-height: 0; overflow-y: scroll; overflow-x: hidden;
+  overscroll-behavior-y: contain; scrollbar-gutter: stable; scrollbar-width: thin;
+  scrollbar-color: var(--account-accent) var(--account-field); scroll-behavior: auto;
+  overflow-anchor: none;
+}
+.message-scroll:focus-visible { outline: 2px solid var(--account-accent); outline-offset: -3px; }
+.message-scroll::-webkit-scrollbar { width: 8px; }
+.message-scroll::-webkit-scrollbar-track { background: var(--account-field); border-radius: 99px; }
+.message-scroll::-webkit-scrollbar-thumb { border: 2px solid var(--account-field); border-radius: 99px; background: var(--account-accent); }
+.message-content { display: flow-root; min-width: 0; overflow-wrap: anywhere; }
+.message-pane>.chat-jump-latest {
+  position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 2;
+  padding: 9px 15px; min-height: 36px; border: 1px solid var(--account-accent); border-radius: 99px;
+  color: var(--account-text); background: var(--account-surface); box-shadow: 0 4px 16px #0003;
+  white-space: nowrap; font-size: 12px; cursor: pointer;
+}
+.chat-jump-latest:focus-visible { outline: 2px solid var(--account-accent); outline-offset: 3px; }
+.chat-stage>.chat-composer { min-height: 0; }
+.chat-stage>.chat-composer textarea { display: block; height: 64px; min-height: 40px; max-height: 16dvh; overflow-y: auto; }
+@media (max-width: 780px) {
+  .rag-workspace>.chat-stage { min-height: 0; }
+  .message-pane>.message-scroll { min-height: 0; }
+}
+@media (max-height: 540px) {
+  .chat-stage>.chat-composer textarea { height: 40px; min-height: 32px; }
+  .chat-stage>.chat-disclaimer { margin-top: 4px; margin-bottom: 4px; }
+}

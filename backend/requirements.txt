@@ -1,0 +1,13 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+python-multipart==0.0.20
+torch==2.5.1
+torchvision==0.20.1
+Pillow==11.0.0
+numpy==2.4.6
+pypdf==6.1.1
+pydicom==3.0.2
+argon2-cffi==25.1.0
+cryptography==45.0.7
+openai==1.109.1
+httpx==0.28.1

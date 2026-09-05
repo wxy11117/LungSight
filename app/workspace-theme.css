@@ -1,0 +1,175 @@
+/* One document-level palette shared by every clinical workspace route. */
+:root {
+  --account-surface: #0c2027;
+  --account-field: #08191f;
+  --account-text: #e1eeed;
+  --account-muted: #8ca7aa;
+  --account-border: #29434a;
+  --account-accent: #67e0d4;
+  --account-gradient: linear-gradient(125deg, #5cddd0, #86b3f3);
+  --workspace-backdrop: #050c10;
+  --workspace-stage: #081419;
+  --workspace-soft: #102d32;
+}
+html[data-theme="light"] {
+  --account-surface: #fff; --account-field: #f4f8fb; --account-text: #193b47;
+  --account-muted: #546e78; --account-border: #ccdce3; --account-accent: #167782;
+  --workspace-backdrop: #eaf1f6; --workspace-stage: #f6f9fc; --workspace-soft: #e9f4f5;
+}
+html[data-theme="eye"] {
+  --account-surface: #f0f5e9; --account-field: #e5ecdc; --account-text: #2c4436;
+  --account-muted: #526450; --account-border: #bdcdb6; --account-accent: #3c7150;
+  --workspace-backdrop: #dce5d3; --workspace-stage: #eaf0e2; --workspace-soft: #e0ead6;
+}
+html[data-accent="rainbow"] { --account-gradient: linear-gradient(120deg, #b6a7ff, #71dce3, #efb685); }
+html[data-accent="aurora"] { --account-accent: #b4adff; --account-gradient: linear-gradient(125deg, #b1a2f8, #7dcbf0); }
+html[data-accent="sunset"] { --account-accent: #f4b4a3; --account-gradient: linear-gradient(125deg, #f8c078, #f399b4); }
+html:is([data-theme="light"], [data-theme="eye"])[data-accent="aurora"] { --account-accent: #60529f; }
+html:is([data-theme="light"], [data-theme="eye"])[data-accent="sunset"] { --account-accent: #a34d48; }
+html:is([data-theme="light"], [data-theme="eye"]),
+html:is([data-theme="light"], [data-theme="eye"]) body { background: var(--workspace-backdrop); }
+
+/* Light/soft surfaces. Image canvases are intentionally absent from these groups. */
+html:is([data-theme="light"], [data-theme="eye"]) :is(.analysis-shell, .review-shell, .library-shell, .evaluation-shell) {
+  color-scheme: light; color: var(--account-text); background: var(--workspace-backdrop);
+}
+html:is([data-theme="light"], [data-theme="eye"]) :is(
+  .analysis-topbar, .analysis-workspace, .analysis-intake, .analysis-result, .analysis-heading>div:last-child,
+  .review-topbar, .review-workspace, .task-browser, .review-counts article, .review-result,
+  .review-form, .review-complete, .audit-timeline, .evidence-agent-panel,
+  .library-topbar, .library-layout, .library-sidebar, .library-scope, .source-grid article,
+  .evaluation-nav, .dataset-strip>div, .score-card, .metric-grid article, .category-score-grid article,
+  .evaluation-results, .evaluation-history, .no-evaluation, .rag-evaluation-card
+) { background: var(--account-surface); border-color: var(--account-border); }
+html:is([data-theme="light"], [data-theme="eye"]) :is(.analysis-viewer, .case-review-panel, .library-content) { background: var(--workspace-stage); }
+html:is([data-theme="light"], [data-theme="eye"]) :is(
+  .analysis-upload, .analysis-samples button, .analysis-primary, .analysis-result select, .analysis-explanation,
+  .analysis-case-name input, .analysis-series, .analysis-history article, .analysis-view-controls button, .analysis-upload-tabs,
+  .analysis-upload-tabs button, .analysis-dicom-summary, .analysis-quality-gate,
+  .task-filters select, .task-filters button, .decision-options button, .review-fields input,
+  .review-fields select, .review-fields textarea, .evidence-query-box, .evidence-prompts button,
+  .evidence-answer, .evidence-cards>a, .qc-summary, .library-toolbar label,
+  .evaluation-filters select, .evaluation-case, .evaluation-case-body, .evaluation-history button,
+  .case-citations>span, .rag-eval-metrics article
+) { background: var(--account-field); border-color: var(--account-border); }
+html:is([data-theme="light"], [data-theme="eye"]) :is(
+  .analysis-file-list p, .analysis-result-meta>span, .analysis-explanation, .analysis-series, .analysis-series dl div, .analysis-history, .analysis-history article, .task-browser-head, .task-filters, .case-review-head,
+  .case-review-head a, .case-status, .review-evidence, .review-fields input, .review-fields select,
+  .review-fields textarea, .audit-timeline article, .evidence-query-box>div,
+  .library-hero, .source-grid dl>div, .source-grid article>footer, .check-row span,
+  .rag-evaluation-card>footer, .evaluation-case-body, .dataset-strip
+) { border-color: var(--account-border); }
+html:is([data-theme="light"], [data-theme="eye"]) .dataset-strip { background: var(--account-border); }
+html:is([data-theme="light"], [data-theme="eye"]) :is(.review-workspace, .review-topbar) { box-shadow: 0 15px 45px #1d384814; }
+
+/* Readable headings, body copy and form controls in every subpage. */
+html:is([data-theme="light"], [data-theme="eye"]) :is(.analysis-shell, .review-shell, .library-shell, .evaluation-shell) :is(h1, h2, h3, h4, strong, b, input, select, textarea, button, a) { color: var(--account-text); }
+html:is([data-theme="light"], [data-theme="eye"]) :is(.analysis-shell, .review-shell, .library-shell, .evaluation-shell) :is(p, small, label, dt, dd, time) { color: var(--account-muted); }
+html:is([data-theme="light"], [data-theme="eye"]) :is(
+  .analysis-heading>div:last-child, .analysis-file-list>span, .analysis-file-list p span, .analysis-samples>span,
+  .analysis-progress span, .analysis-viewer>footer, .analysis-primary>span, .analysis-probabilities>div>span,
+  .analysis-series-bars>div>span, .analysis-series dt, .analysis-series dd, .analysis-slice-label, .analysis-dicom-summary span, .analysis-quality-gate span,
+  .analysis-history article button small,
+  .review-counts span, .task-browser-head span, .task-row, .task-state, .case-review-head>div:first-child>span,
+  .case-status, .review-label, .review-probabilities>div, .evidence-query-box label,
+  .evidence-cards footer, .evidence-limit, .audit-timeline>div>span, .review-footer,
+  .library-hero>div:last-child span, .library-toolbar em, .library-loading, .source-grid article>header span,
+  .source-grid article>footer span, .dataset-strip>div:not(:first-child) span,
+  .metric-grid article>span, .evaluation-case summary>span, .check-row span,
+  .evaluation-history button span, .rag-eval-metrics span, .rag-evaluation-card>footer,
+  .local-status, .evaluation-loading, .evaluation-footer
+) { color: var(--account-muted); }
+html:is([data-theme="light"], [data-theme="eye"]) :is(.library-toolbar input, .evidence-query-box textarea) { background: transparent; }
+html:is([data-theme="light"], [data-theme="eye"]) :is(.analysis-shell, .review-shell, .library-shell, .evaluation-shell) ::placeholder { color: var(--account-muted); opacity: .8; }
+html:is([data-theme="light"], [data-theme="eye"]) :is(
+  .analysis-heading>div:first-child>span, .analysis-section-title>span, .analysis-heading>div:last-child strong,
+  .analysis-viewer>header span, .analysis-file-list b, .analysis-samples i, .analysis-primary>b, .analysis-explanation header span, .analysis-explanation>div span,
+  .analysis-series>header span, .analysis-series-primary strong,
+  .analysis-result-empty>i, .review-eyebrow, .review-top-result>b, .task-row em,
+  .evidence-agent-head>div:first-child>span, .evidence-agent-head>div:last-child strong,
+  .evidence-answer-head>div>span, .evidence-cards>a>div span, .qc-summary>div:first-child,
+  .qc-summary>div:first-child b, .review-form-title>span, .review-complete>span, .review-complete strong,
+  .library-sidebar>div:first-child>span, .library-hero>div:first-child>span, .library-hero>div:last-child strong,
+  .library-sidebar>nav b, .library-scope>span, .library-toolbar label span,
+  .source-grid article>header i, .source-grid article>footer a,
+  .evaluation-hero>div>span, .evaluation-results-head>div>span, .evaluation-history>div>span,
+  .dataset-strip>div:first-child span, .score-card>div:last-child>span, .score-ring strong,
+  .category-score-grid strong, .evaluation-history button strong, .case-citations b,
+  .rag-eval-title span, .rag-evaluation-card>footer strong
+) { color: var(--account-accent); }
+
+/* Selection states use the same accent; warnings keep their independent meaning. */
+html:is([data-theme="light"], [data-theme="eye"]) :is(
+  .analysis-samples button.active, .analysis-samples button:hover, .analysis-upload:hover,
+  .analysis-history article.active, .analysis-history article:hover, .analysis-view-controls button.active, .analysis-upload-tabs button.active,
+  .task-row.active, .task-row:hover, .decision-options button.active,
+  .library-sidebar>nav button.active, .library-sidebar>nav button:hover, .evaluation-history button.active
+) { background: var(--workspace-soft); border-color: var(--account-accent); color: var(--account-text); }
+html:is([data-theme="light"], [data-theme="eye"]) :is(.analysis-shell, .review-shell, .library-shell, .evaluation-shell) :is(button, a, input, select, textarea):focus-visible { outline: 2px solid var(--account-accent); outline-offset: 3px; }
+html:is([data-theme="light"], [data-theme="eye"]) :is(.analysis-probabilities>div>i, .analysis-series-bars i, .analysis-progress>i, .review-probabilities i, .metric-grid i) { background: var(--account-border); }
+html:is([data-theme="light"], [data-theme="eye"]) .score-ring:after { background: var(--account-surface); border-color: var(--account-border); }
+
+/* Functional accents follow the selected classic/rainbow/aurora/sunset palette. */
+html[data-accent] :is(.analysis-run, .analysis-upload>i, .analysis-explain, .analysis-result-actions a:first-child,
+  .submit-review, .review-topbar>div>a, .evidence-query-box button, .evaluation-hero button, .rag-eval-title button,
+  .analysis-probabilities em, .analysis-series-bars em, .review-probabilities em, .metric-grid i em, .analysis-progress em
+) { background: var(--account-gradient); color: #09202a; }
+html[data-accent] :is(.submit-review>span, .submit-review>i) { color: #09202a; }
+html[data-accent] .score-ring { background: conic-gradient(var(--account-accent) var(--score), var(--account-border) 0); }
+html[data-accent] .evaluation-filters input { accent-color: var(--account-accent); }
+html:is([data-theme="light"], [data-theme="eye"]) :is(.analysis-result-actions a:last-child, .case-review-head a) { color: var(--account-accent); background: var(--workspace-soft); }
+
+/* Clinical image pixels, original black viewing canvases and heatmaps stay unchanged. */
+html:is([data-theme="light"], [data-theme="eye"]) .analysis-image>span { color: #65ded3; }
+html:is([data-theme="light"], [data-theme="eye"]) .analysis-image>small { color: #97b4b5; }
+html:is([data-theme="light"], [data-theme="eye"]) .review-image>span { color: #9fb4b9; }
+html:is([data-theme="light"], [data-theme="eye"]) .image-mode-switch button { color: #a4bdc0; }
+html:is([data-theme="light"], [data-theme="eye"]) .image-mode-switch button.active { color: #07110f; }
+
+/* Status colors must not change with decorative accent choices. */
+html:is([data-theme="light"], [data-theme="eye"]) :is(.analysis-error, .analysis-explanation-error, .review-error, .evaluation-error, .priority-chip.high_risk) { background: #fbebeb; border-color: #e2b7b9; color: #a73039; }
+html:is([data-theme="light"], [data-theme="eye"]) :is(.analysis-caution, .review-warning.active) { background: #fbf0df; border-color: #e2c38e; color: #815224; }
+html:is([data-theme="light"], [data-theme="eye"]) :is(.analysis-caution b, .analysis-caution p, .review-warning.active, .priority-chip.priority, .task-state.waiting_for_review, .task-row>i.flagged, .evidence-answer-head>i.insufficient, .evidence-answer-head>i.refused, .evaluation-case.failed summary>i, .check-row .bad) { color: #815224; }
+html:is([data-theme="light"], [data-theme="eye"]) :is(.priority-chip.routine, .task-row>i.stable, .task-state.confirmed, .task-state.corrected, .evidence-answer-head>i.supported, .evaluation-case.passed summary>i, .check-row .ok, .all-passed) { color: #246948; }
+
+/* One visible, theme-aware route back to the Agent from every child workspace. */
+html[data-theme] :is(.analysis-topbar, .review-topbar, .library-topbar, .evaluation-nav) a.back-to-agent {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 9px 15px;
+  border: 1px solid var(--account-accent);
+  border-radius: 10px;
+  background: var(--account-gradient);
+  color: #09202a;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-decoration: none;
+  white-space: nowrap;
+}
+html[data-theme] :is(.analysis-topbar, .review-topbar, .library-topbar, .evaluation-nav) a.back-to-agent:hover {
+  box-shadow: 0 0 0 3px var(--account-border);
+}
+html[data-theme] :is(.analysis-topbar, .review-topbar, .library-topbar, .evaluation-nav) a.back-to-agent:focus-visible {
+  outline: 2px solid var(--account-accent);
+  outline-offset: 4px;
+}
+@media (max-width: 780px) {
+  :is(.analysis-topbar, .review-topbar, .library-topbar, .evaluation-nav) {
+    height: auto;
+    min-height: 66px;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px;
+  }
+  :is(.analysis-topbar, .library-topbar)>nav,
+  :is(.review-topbar, .evaluation-nav)>div {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  :is(.review-topbar, .evaluation-nav) .local-status { display: none; }
+}

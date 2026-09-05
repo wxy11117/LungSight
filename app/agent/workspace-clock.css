@@ -1,0 +1,15 @@
+.chat-empty .workspace-clock { margin: 18px 0 20px; text-align: center; }
+.chat-empty .workspace-clock h1 {
+  margin: 0; color: var(--account-text); font-size: clamp(40px, 6vw, 88px);
+  font-weight: 700; line-height: 1.15; letter-spacing: .025em;
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.chat-empty .workspace-clock p {
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
+  gap: 8px 14px; margin: 12px 0 0; color: var(--account-muted);
+  font-size: clamp(12px, 1.3vw, 16px); line-height: 1.6;
+}
+.chat-empty .workspace-clock small {
+  padding: 2px 8px; border: 1px solid var(--account-border); border-radius: 6px;
+  font-size: 11px; color: var(--account-accent); background: var(--account-field);
+}

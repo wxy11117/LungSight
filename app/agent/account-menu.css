@@ -1,0 +1,254 @@
+.rag-shell :is(.new-chat, .chat-composer button, .message-avatar) { background: var(--account-gradient); }
+.rag-shell .chat-message.assistant .message-avatar { color: var(--account-accent); background: var(--account-field); }
+.rag-shell .usage-card>strong { color: var(--account-accent); }
+.account-menu { flex-shrink: 0; margin-left: 4px; }
+.account-avatar-trigger {
+  display: grid; place-items: center; width: 36px; height: 36px; padding: 0;
+  border: 2px solid var(--account-border); border-radius: 50%; cursor: pointer;
+  background: var(--account-gradient); color: #09202a; font-size: 16px; font-weight: 800;
+  box-shadow: 0 3px 14px #0002;
+}
+.account-avatar-trigger:hover { border-color: var(--account-accent); }
+.account-avatar-trigger:disabled { opacity: .45; cursor: wait; }
+.account-popover {
+  position: fixed; inset: 88px 28px auto auto; margin: 0; box-sizing: border-box;
+  width: min(350px, calc(100vw - 24px)); max-height: calc(100dvh - 104px);
+  overflow-y: auto; overscroll-behavior: contain; padding: 20px;
+  border: 1px solid var(--account-border); border-radius: 18px;
+  background: var(--account-surface); color: var(--account-text);
+  box-shadow: 0 24px 75px #0006; scrollbar-width: thin;
+  scrollbar-color: var(--account-border) transparent; color-scheme: dark;
+  text-align: left; font-size: 13px; line-height: 1.5;
+}
+.account-popover::backdrop { background: transparent; }
+.account-profile { display: flex; align-items: center; gap: 12px; padding: 2px 0 18px; }
+.account-profile-avatar { display: grid; place-items: center; flex-shrink: 0; width: 46px; height: 46px; border-radius: 14px; background: var(--account-gradient); color: #09202a; font-size: 22px; font-weight: 800; }
+.account-profile>div { min-width: 0; flex: 1; }
+.account-profile strong { display: block; color: var(--account-text); font-size: 16px; overflow-wrap: anywhere; }
+.account-profile small, .account-profile>div>span { display: block; margin-top: 3px; color: var(--account-muted); font-size: 10px; overflow-wrap: anywhere; }
+.account-close { align-self: flex-start; flex-shrink: 0; width: 25px; height: 25px; border: 0; border-radius: 7px; background: var(--account-field); color: var(--account-muted); cursor: pointer; font-size: 19px; line-height: 1; }
+.account-section { padding: 15px 0; border-top: 1px solid var(--account-border); }
+.account-section h2 { display: flex; align-items: center; justify-content: space-between; margin: 0 0 10px; font-size: 13px; font-weight: 700; }
+.account-section h2 small { color: var(--account-muted); font-size: 10px; font-weight: 400; }
+.account-theme-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.account-theme-options button, .account-accent-options button, .account-actions>button, .account-actions>details {
+  border: 1px solid var(--account-border); border-radius: 9px;
+  background: var(--account-field); color: var(--account-text);
+}
+.account-theme-options button { min-height: 36px; font-size: 12px; cursor: pointer; }
+.account-theme-options button[aria-pressed="true"] { border-color: transparent; background: var(--account-gradient); color: #09202a; font-weight: 800; }
+.account-accent-options { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 10px; }
+.account-accent-options button { display: flex; align-items: center; gap: 8px; padding: 10px 8px; text-align: left; cursor: pointer; }
+.account-accent-options button[aria-pressed="true"] { border-color: var(--account-accent); }
+.account-accent-options button span { flex: 1; }
+.account-accent-options b { display: block; font-size: 12px; }
+.account-accent-options small { display: block; margin-top: 3px; color: var(--account-muted); font-size: 9px; }
+.account-accent-options em { width: 10px; color: var(--account-accent); font-style: normal; }
+.accent-swatch { width: 13px; height: 28px; flex-shrink: 0; border-radius: 5px; }
+.accent-swatch.classic { background: linear-gradient(#5cddd0, #86b3f3); }
+.accent-swatch.rainbow { background: linear-gradient(#b6a7ff, #71dce3, #efb685); }
+.accent-swatch.aurora { background: linear-gradient(#b1a2f8, #7dcbf0); }
+.accent-swatch.sunset { background: linear-gradient(#f8c078, #f399b4); }
+.account-popover .account-hint { margin: 9px 0 0; color: var(--account-muted); font-size: 10px; line-height: 1.6; }
+.account-actions { display: flex; flex-direction: column; gap: 7px; }
+.account-actions>button { display: flex; align-items: center; justify-content: space-between; min-height: 36px; padding: 8px 11px; cursor: pointer; font-size: 12px; text-align: left; }
+.account-actions :is(button, summary)>i { color: var(--account-muted); font-style: normal; }
+.account-actions>details { overflow: hidden; }
+.account-actions summary { display: flex; align-items: center; justify-content: space-between; min-height: 36px; padding: 8px 11px; box-sizing: border-box; cursor: pointer; font-size: 12px; list-style: none; }
+.account-actions summary::-webkit-details-marker { display: none; }
+.account-actions details[open] summary>i { transform: rotate(45deg); }
+.account-actions details p { margin: 0; padding: 0 11px 12px; color: var(--account-muted); font-size: 11px; line-height: 1.8; }
+.account-contact-body { padding: 2px 11px 13px; }
+.account-contact-body>span { display: block; color: var(--account-muted); font-size: 10px; }
+.account-contact-body>a { display: inline-block; margin-top: 4px; color: var(--account-accent); font-size: 12px; text-decoration: none; }
+.account-contact-body>a:hover { text-decoration: underline; }
+.account-contact-body>a:focus-visible { outline: 2px solid var(--account-accent); outline-offset: 3px; border-radius: 2px; }
+.account-contact-body>footer { display: flex; align-items: flex-end; flex-direction: column; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--account-border); text-align: right; }
+.account-contact-body>footer strong { display: flex; align-items: center; justify-content: flex-end; font-family: Bahnschrift,"Arial Black","Segoe UI",sans-serif; font-size: 27px; font-weight: 800; line-height: .92; letter-spacing: .11em; transform: scaleX(1.06); transform-origin: right center; }
+.account-contact-body>footer .qionx-main { color: #082c68; text-shadow: 0 4px 14px #1c6bbb1c; }
+.account-contact-body>footer .qionx-x { margin-left: .02em; color: transparent; background: linear-gradient(150deg,#11c8ec 18%,#187de9 48%,#6328f2 78%); background-clip: text; -webkit-background-clip: text; }
+.account-contact-body>footer small { margin-top: 8px; color: var(--account-muted); font: 8px Bahnschrift,var(--font-geist-mono); letter-spacing: .24em; }
+html[data-theme="dark"] .account-contact-body>footer strong { color: #91baf1; }
+html[data-theme="dark"] .account-contact-body>footer .qionx-main { color: #91baf1; }
+.account-actions .account-hint { margin-top: 0; }
+.account-actions button:disabled { opacity: .5; cursor: not-allowed; }
+.account-session { padding-bottom: 0; }
+.account-session h2 { margin-bottom: 2px; }
+.account-actions .account-logout { color: #ff9c99; }
+.account-feedback { margin: 12px 0 0; padding: 9px; border: 1px solid var(--account-border); border-radius: 8px; color: var(--account-accent); font-size: 11px; }
+.account-feedback.error { color: #ff9c99; }
+.logout-confirm {
+  box-sizing: border-box; width: min(410px, calc(100vw - 28px)); margin: auto; padding: 26px;
+  border: 1px solid var(--account-border); border-radius: 18px; color: var(--account-text);
+  background: var(--account-surface); box-shadow: 0 28px 90px #0008; color-scheme: dark;
+  text-align: left;
+}
+.logout-confirm::backdrop { background: #020c14a6; backdrop-filter: blur(4px); }
+.logout-confirm-icon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; color: #c44b4f; background: color-mix(in srgb,#e86868 14%,var(--account-field)); font-size: 22px; }
+.logout-confirm h2 { margin: 18px 0 8px; color: var(--account-text); font-size: 22px; }
+.logout-confirm>p { margin: 0; color: var(--account-muted); font-size: 14px; line-height: 1.75; }
+.logout-confirm .logout-confirm-error { margin-top: 14px; padding: 10px 12px; border: 1px solid #c8585859; border-radius: 9px; color: #ff9c99; background: color-mix(in srgb,#c85858 9%,var(--account-field)); }
+.logout-confirm footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+.logout-confirm footer button { min-height: 42px; padding: 8px 18px; border: 1px solid var(--account-border); border-radius: 10px; color: var(--account-text); background: var(--account-field); cursor: pointer; font-size: 14px; }
+.logout-confirm footer .logout-confirm-primary { border-color: transparent; color: #fff; background: #b83d43; font-weight: 700; }
+.logout-confirm footer button:hover:not(:disabled) { border-color: var(--account-accent); }
+.logout-confirm footer .logout-confirm-primary:hover:not(:disabled) { border-color: transparent; background: #a93239; }
+.logout-confirm footer button:disabled { opacity: .55; cursor: wait; }
+.logout-confirm footer button:focus-visible { outline: 2px solid var(--account-accent); outline-offset: 3px; }
+html:is([data-theme="light"], [data-theme="eye"]) .logout-confirm { color-scheme: light; box-shadow: 0 28px 80px #1d38483d; }
+.account-switcher {
+  box-sizing: border-box; width: min(520px, calc(100vw - 28px)); max-height: calc(100dvh - 40px); margin: auto; padding: 26px;
+  overflow-y: auto; border: 1px solid var(--account-border); border-radius: 20px; color: var(--account-text);
+  background: var(--account-surface); box-shadow: 0 30px 100px #0008; color-scheme: dark;
+}
+.account-switcher::backdrop { background: #020c14b0; backdrop-filter: blur(5px); }
+.account-switcher>header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.account-switcher>header span { color: var(--account-accent); font: 11px var(--font-geist-mono),monospace; letter-spacing: .13em; }
+.account-switcher>header h2 { margin: 7px 0 0; color: var(--account-text); font-size: 25px; }
+.account-switcher>header>button { width: 32px; height: 32px; padding: 0; border: 0; border-radius: 8px; color: var(--account-muted); background: var(--account-field); cursor: pointer; font-size: 22px; }
+.account-switcher-intro { margin: 16px 0 18px; color: var(--account-muted); font-size: 14px; line-height: 1.7; }
+.account-switch-list { display: flex; flex-direction: column; gap: 9px; }
+.account-switch-list>button { display: grid; grid-template-columns: 48px minmax(0,1fr) auto; align-items: center; gap: 12px; width: 100%; min-height: 66px; padding: 9px 12px; border: 1px solid var(--account-border); border-radius: 13px; color: var(--account-text); background: var(--account-field); cursor: pointer; text-align: left; }
+.account-switch-list>button:hover:not(:disabled), .account-switch-list>button.selected { border-color: var(--account-accent); background: var(--workspace-soft); }
+.account-switch-list>button>span:nth-child(2) { min-width: 0; }
+.account-switch-list strong, .account-switch-list small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-switch-list strong { color: var(--account-text); font-size: 15px; }
+.account-switch-list small { margin-top: 4px; color: var(--account-muted); font-size: 12px; }
+.account-switch-list i { color: var(--account-accent); font-size: 12px; font-style: normal; }
+.account-switch-avatar { display: grid; place-items: center; width: 46px; height: 46px; overflow: hidden; border-radius: 13px; color: #09202a; background: var(--account-gradient); font-size: 19px; font-weight: 800; }
+.account-switch-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.account-switch-state { margin: 0; padding: 22px 12px; border: 1px dashed var(--account-border); border-radius: 12px; color: var(--account-muted); font-size: 14px; text-align: center; }
+.account-switch-password { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; color: var(--account-text); font-size: 14px; }
+.account-switch-password input { width: 100%; min-height: 46px; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--account-border); border-radius: 10px; color: var(--account-text); background: var(--account-field); font: inherit; }
+.account-switch-error { margin: 12px 0 0; padding: 10px 12px; border: 1px solid #c8585859; border-radius: 9px; color: #ff9c99; background: color-mix(in srgb,#c85858 9%,var(--account-field)); font-size: 13px; line-height: 1.6; }
+.account-switcher footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+.account-switcher footer button { min-height: 42px; padding: 8px 18px; border: 1px solid var(--account-border); border-radius: 10px; color: var(--account-text); background: var(--account-field); cursor: pointer; font-size: 14px; }
+.account-switcher footer .account-switch-primary { border-color: transparent; color: #09202a; background: var(--account-gradient); font-weight: 700; }
+.account-switcher :is(button,input):focus-visible { outline: 2px solid var(--account-accent); outline-offset: 3px; }
+.account-switcher :is(button,input):disabled { opacity: .55; cursor: wait; }
+html:is([data-theme="light"], [data-theme="eye"]) .account-switcher { color-scheme: light; box-shadow: 0 30px 90px #1d38483d; }
+@media(max-width:520px) { .account-switcher { padding: 20px 16px; }.account-switch-list>button { grid-template-columns: 44px minmax(0,1fr) auto; padding-inline: 9px; }.account-switch-avatar { width: 42px; height: 42px; } }
+.account-popover :is(button, summary):hover:not(:disabled) { border-color: var(--account-accent); }
+.account-avatar-trigger:focus-visible, .account-popover :is(button, summary):focus-visible { outline: 2px solid var(--account-accent); outline-offset: 3px; }
+.account-avatar-trigger img, .account-profile-avatar img, .profile-avatar-preview img, .message-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+.account-edit-avatar { position: relative; overflow: hidden; border: 0; padding: 0; cursor: pointer; }
+.avatar-edit-mark { position: absolute; inset: auto 0 0; padding: 2px 0; color: #fff; background: #09202abd; text-align: center; font-size: 9px; opacity: 0; transition: opacity .15s; }
+.account-edit-avatar:hover .avatar-edit-mark, .account-edit-avatar:focus-visible .avatar-edit-mark { opacity: 1; }
+.account-edit-name { display: flex; align-items: center; gap: 8px; max-width: 100%; padding: 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
+.account-edit-name span { flex-shrink: 0; color: var(--account-muted); font-size: 9px; }
+.account-edit-name:hover strong { color: var(--account-accent); }
+.profile-editor {
+  position: fixed; inset: 0; box-sizing: border-box; margin: auto; padding: 26px;
+  width: min(430px, calc(100vw - 28px)); max-height: calc(100dvh - 40px); overflow-y: auto;
+  border: 1px solid var(--account-border); border-radius: 18px; background: var(--account-surface);
+  color: var(--account-text); box-shadow: 0 24px 80px #0005; color-scheme: dark;
+}
+.profile-editor::backdrop { background: #020c1499; }
+.profile-editor>header { display: flex; align-items: center; justify-content: space-between; color: var(--account-muted); font-size: 11px; }
+.profile-editor>header>button { width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; color: var(--account-muted); background: var(--account-field); font-size: 20px; cursor: pointer; }
+.profile-editor h2 { margin: 14px 0; font-size: 22px; }
+.profile-editor p { font-size: 13px; line-height: 1.8; color: var(--account-muted); }
+.profile-editor footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+.profile-editor footer button, .profile-choose-file { min-height: 40px; padding: 8px 18px; border: 1px solid var(--account-border); border-radius: 9px; background: var(--account-field); color: var(--account-text); font-size: 13px; cursor: pointer; }
+.profile-editor footer .profile-primary { border-color: transparent; background: var(--account-gradient); color: #09202a; font-weight: 700; }
+.profile-editor button:disabled { opacity: .5; cursor: not-allowed; }
+.profile-editor :is(button, input):focus-visible { outline: 2px solid var(--account-accent); outline-offset: 3px; }
+.profile-avatar-preview { display: grid; place-items: center; width: 156px; height: 156px; margin: 20px auto; border-radius: 28px; background: var(--account-gradient); color: #09202a; font-size: 68px; font-weight: 800; overflow: hidden; }
+.profile-choose-file { display: block; margin: 0 auto; }
+.profile-editor .profile-file-name { text-align: center; overflow-wrap: anywhere; }
+.profile-editor .profile-note { margin-top: 12px; font-size: 11px; }
+.profile-editor label { display: block; margin: 20px 0 8px; color: var(--account-muted); font-size: 12px; }
+.profile-editor input:not([type="file"]) { box-sizing: border-box; width: 100%; padding: 12px; border: 1px solid var(--account-border); border-radius: 8px; color: var(--account-text); background: var(--account-field); font-size: 15px; }
+.profile-editor .profile-error { padding: 9px 12px; border: 1px solid #b765604d; border-radius: 8px; color: #ff9c99; font-size: 12px; }
+html:is([data-theme="light"], [data-theme="eye"]) .rag-shell .profile-editor { color-scheme: light; }
+html:is([data-theme="light"], [data-theme="eye"]) .rag-shell .profile-editor .profile-error { color: #ae343b; }
+
+/* Agent-specific surfaces consume the shared document palette. */
+html:is([data-theme="light"], [data-theme="eye"]) .rag-shell { color-scheme: light; color: var(--account-text); background: var(--workspace-backdrop); }
+html:is([data-theme="light"], [data-theme="eye"]) .rag-shell :is(.rag-topbar, .rag-workspace, .conversation-rail, .evidence-rail, .context-card, .citation-panel, .provider-compact, .usage-card, .history-library, .chat-composer) { background: var(--account-surface); border-color: var(--account-border); }
+html:is([data-theme="light"], [data-theme="eye"]) .rag-shell .chat-stage { background: var(--workspace-stage); }
+html:is([data-theme="light"], [data-theme="eye"]) .rag-shell :is(.chat-context-bar, .chat-composer>div, .history-library>summary, .citation-panel article footer) { border-color: var(--account-border); }
+html:is([data-theme="light"], [data-theme="eye"]) .rag-shell :is(.chat-context-bar select, .provider-compact input, .provider-compact select, .provider-compact .provider-choice-grid>button, .chat-empty button, .workspace-shortcuts>a, .citation-panel article, .message-body>p, .agent-orb span) { background: var(--account-field); color: var(--account-text); border-color: var(--account-border); }
+html:is([data-theme="light"], [data-theme="eye"]) .rag-shell :is(.workspace-module-nav>a, .conversation-list>button, .rag-system-state>a, .rag-system-state>span, .context-card>p, .citation-panel>p, .chat-empty>p, .history-library>summary strong, .provider-choice-grid>button b, .chat-composer textarea, .workspace-shortcuts b, .citation-panel article>strong) { color: var(--account-text); }
+html:is([data-theme="light"], [data-theme="eye"]) .rag-shell :is(.workspace-module-nav>a.active, .conversation-list>button.active, .chat-message.user .message-body>p, .provider-compact .provider-choice-grid>button.selected) { background: var(--workspace-soft); border-color: var(--account-accent); color: var(--account-text); }
+html:is([data-theme="light"], [data-theme="eye"]) .rag-shell :is(.chat-composer span, .chat-disclaimer, .chat-context-bar span, .conversation-list small, .conversation-list>p, .history-library>summary small, .usage-card>span, .usage-card>p, .provider-compact label, .provider-compact form p, .provider-choice-grid>button small, .citation-panel article>p, .citation-panel article footer small, .message-body>header time, .message-body>footer, .workspace-module-nav small, .workspace-shortcuts small, .context-card>small) { color: var(--account-muted); }
+html:is([data-theme="light"], [data-theme="eye"]) .rag-shell :is(.workspace-heading>span, .context-card>div span, .citation-panel>div>span, .provider-compact summary>span, .chat-empty>span, .usage-card>strong, .citation-panel article header b, .citation-panel article header span, .citation-panel article footer span, .inline-citations button, .inline-citations i, .message-body>header i, .agent-orb span) { color: var(--account-accent); }
+html:is([data-theme="light"], [data-theme="eye"]) .rag-shell .uncertainty-box { background: #f6ead8; border-color: #d8b782; }
+html:is([data-theme="light"], [data-theme="eye"]) .rag-shell :is(.uncertainty-box b, .uncertainty-box span, .message-body>header i.risk, .message-body>header i.refused, .message-body>header i.insufficient) { color: #815224; }
+html:is([data-theme="light"], [data-theme="eye"]) .rag-shell :is(.rag-alert, .provider-compact form p.provider-last-error, .account-actions .account-logout, .account-feedback.error) { color: #ae343b; }
+html:is([data-theme="light"], [data-theme="eye"]) .rag-shell .account-popover { color-scheme: light; box-shadow: 0 24px 65px #1d38482b; }
+html:is([data-theme="light"], [data-theme="eye"]) .rag-shell .conversation-rail { scrollbar-color: var(--account-border) var(--account-field); }
+
+/* Every Agent surface, including controls added after the original theme work,
+   consumes the same three-mode palette. Keep these rules theme-agnostic so
+   dark, light and eye-care modes share one component hierarchy. */
+.rag-shell { color: var(--account-text); background: var(--workspace-backdrop); }
+.rag-shell :is(.rag-topbar, .rag-workspace, .conversation-rail, .evidence-rail) {
+  color: var(--account-text); background: var(--account-surface); border-color: var(--account-border);
+}
+.rag-shell .chat-stage { color: var(--account-text); background: var(--workspace-stage); }
+.rag-shell :is(.chat-context-bar, .chat-composer>div) { border-color: var(--account-border); }
+.rag-shell :is(
+  .workspace-search, .model-quick-switch summary, .context-actions>button,
+  .chat-context-bar select, .context-card, .citation-panel, .usage-card,
+  .provider-status-card, .chat-composer, .history-library
+) { color: var(--account-text); background: var(--account-surface); border-color: var(--account-border); }
+.rag-shell :is(
+  .workspace-search, .model-quick-switch summary, .context-actions>button,
+  .chat-context-bar select, .citation-panel article, .message-body>p,
+  .chat-empty button, .workspace-shortcuts>a, .agent-orb span
+) { background: var(--account-field); }
+.rag-shell .workspace-search input { color: var(--account-text); }
+.rag-shell .workspace-search span,
+.rag-shell .workspace-search input::placeholder,
+.rag-shell .context-actions>button { color: var(--account-muted); }
+.rag-shell .model-quick-switch summary { color: var(--account-accent); }
+.rag-shell .model-quick-switch summary.warning { color: #b46e2d; }
+.rag-shell .model-quick-switch>div { color: var(--account-text); background: var(--account-surface); border-color: var(--account-border); }
+.rag-shell .model-quick-switch>div>button { color: var(--account-text); }
+.rag-shell .model-quick-switch>div>button:hover { background: var(--workspace-soft); }
+.rag-shell .provider-status-card>span,
+.rag-shell .provider-status-card>a { color: var(--account-accent); }
+.rag-shell .provider-status-card>strong { color: var(--account-text); }
+.rag-shell .provider-status-card>p { color: var(--account-muted); }
+.rag-shell .usage-card-provider { background: var(--account-surface); }
+.rag-shell :is(.context-card, .citation-panel, .usage-card, .provider-status-card) {
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--workspace-backdrop) 12%, transparent);
+}
+.rag-shell .rag-topbar { position: relative; z-index: 30; overflow: visible; }
+.top-action-nav { display: flex; align-items: center; gap: 6px; }
+.top-action-nav>a {
+  position: relative; z-index: 1; display: grid; grid-template-columns: 30px auto; align-items: center; gap: 8px;
+  min-height: 44px; padding: 0 11px; border: 1px solid var(--account-border); border-radius: 10px;
+  color: var(--account-text); background: var(--account-surface); text-decoration: none; pointer-events: auto;
+  transition: border-color .16s ease, background .16s ease, transform .16s ease;
+}
+.top-action-nav>a:hover { border-color: var(--account-accent); background: var(--workspace-soft); transform: translateY(-1px); }
+.top-action-nav>a:focus-visible { outline: 2px solid var(--account-accent); outline-offset: 2px; }
+.top-action-nav>a>i {
+  display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px;
+  color: var(--account-accent); background: var(--workspace-soft); font: 10px var(--font-geist-mono); font-style: normal;
+}
+.top-action-nav>a>span { display: flex; flex-direction: column; gap: 2px; white-space: nowrap; }
+.top-action-nav>a b { color: var(--account-text); font-size: 12px; }
+.top-action-nav>a small { color: var(--account-muted); font-size: 10px; }
+.top-action-nav>a>em {
+  display: grid; position: absolute; top: -5px; right: -5px; place-items: center; min-width: 20px; height: 20px;
+  padding: 0 5px; border: 2px solid var(--account-surface); border-radius: 99px;
+  color: #09202a; background: #e6a569; font-size: 10px; font-style: normal; font-weight: 800;
+}
+html:is([data-theme="light"], [data-theme="eye"]) .rag-shell :is(
+  .workspace-search, .model-quick-switch summary, .context-actions>button,
+  .chat-context-bar select, .provider-status-card
+) { color-scheme: light; }
+@media (max-width: 1380px) {
+  .top-action-nav>a { grid-template-columns: 28px; padding: 0 8px; }
+  .top-action-nav>a>span { display: none; }
+}
+@media (max-width: 780px) {
+  .account-popover { top: 78px; right: 12px; max-height: calc(100dvh - 90px); padding: 16px; }
+  .account-history-action { display: none !important; }
+  .top-action-nav>a { min-height: 38px; grid-template-columns: 26px; padding: 0 5px; }
+  .top-action-nav>a>i { width: 26px; height: 26px; }
+  .top-action-nav>a:nth-child(2) { display: none; }
+}

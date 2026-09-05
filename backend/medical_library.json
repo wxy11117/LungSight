@@ -1,0 +1,123 @@
+{
+  "version": "lung-medical-library-2026-08-30-v1",
+  "checked_at": "2026-08-30",
+  "entries": [
+    {
+      "key": "nci-nsclc-pdq", "title": "NCI：非小细胞肺癌诊疗与治疗路径", "original_title": "Non-Small Cell Lung Cancer Treatment (PDQ®)–Health Professional Version",
+      "url": "https://www.cancer.gov/types/lung/hp/non-small-cell-lung-treatment-pdq", "year": "动态更新页面", "category": "guideline", "classes": ["adenocarcinoma", "squamous_cell_carcinoma", "large_cell_carcinoma"],
+      "authority": "美国国家癌症研究所 NCI", "evidence_level": "专业诊疗信息汇总", "verification": "已核对官方网页相关章节", "enabled": true,
+      "limitations": "不是患者个体处方；动态页面应在临床使用前核对最新版本及本地药物适应证。",
+      "sections": [
+        {"heading": "治疗原则与病理确诊", "text": "肺癌治疗不能由CT预测类别单独决定。NCI资料强调需确认病理类型并评估分期、整体健康和合并症；治疗前应由有经验的肺癌病理医师审阅病理材料。"},
+        {"heading": "非小细胞肺癌治疗方式", "text": "局部可切除、局部晚期和转移性非小细胞肺癌的治疗路径不同，可涉及手术、放疗、化疗、靶向及免疫治疗等。模型不能凭单张CT生成患者用药、剂量或手术决定；应结合病理、分期和适用生物标志物，由多学科团队确定方案。"}
+      ]
+    },
+    {
+      "key": "who-cytopathology-2024", "title": "肺癌细胞形态：腺癌与鳞癌的细胞病理识别", "original_title": "The World Health Organization Reporting System for Lung Cytopathology–A Review of the First Edition",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38736711/", "doi": "10.14218/jctp.2023.00068", "pmid": "38736711", "pmcid": "PMC11086742", "year": "2024", "category": "pathology", "classes": ["adenocarcinoma", "squamous_cell_carcinoma"],
+      "authority": "WHO肺细胞病理报告系统学术解读", "evidence_level": "分类体系解读 / 细胞病理", "verification": "已通过Europe PMC核对全文相关形态章节", "enabled": true,
+      "limitations": "细胞病理形态属于显微镜检查，不是普通CT可直接观察的细胞级特征；并非本软件病理诊断能力。",
+      "sections": [
+        {"heading": "腺癌细胞与组织形态", "text": "腺癌细胞病理可呈腺腔或腺泡、三维细胞团及乳头样排列，可见极性紊乱、核仁明显、泡沫状胞质；黏液型变异可见胞质内黏液。这些是病理形态学线索，不能把CT磨玻璃影直接等同于看见腺癌细胞。"},
+        {"heading": "鳞状细胞癌细胞形态", "text": "鳞状细胞癌可见片状或散在的鳞状肿瘤细胞、致密胞质和角化；腺样结构、黏液、角化及细胞间桥等用于区分腺性与鳞状分化。分化不明确时需病理辅助检查，单凭CT空洞不能确诊鳞癌。"}
+      ]
+    },
+    {
+      "key": "iaslc-ihc-2019", "title": "IASLC：肺癌病理免疫组化分型的使用与陷阱", "original_title": "Best Practices Recommendations for Diagnostic Immunohistochemistry in Lung Cancer",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/30572031/", "doi": "10.1016/j.jtho.2018.12.005", "pmid": "30572031", "pmcid": "PMC6422775", "year": "2019（在线发表2018）", "category": "pathology", "classes": ["adenocarcinoma", "squamous_cell_carcinoma", "large_cell_carcinoma"],
+      "authority": "IASLC病理委员会专家建议", "evidence_level": "专家实践建议", "verification": "已核对PubMed / Europe PMC题录与摘要，未下载全文", "enabled": true,
+      "limitations": "摘要级整理；具体染色阈值、抗体克隆及疑难病例解释须查阅全文和现行病理规范。",
+      "sections": [{"heading": "病理分型与免疫组化", "text": "IASLC病理委员会讨论免疫组化在肺癌诊断中的作用，特别是低分化肿瘤分型、标志物解释陷阱及保留分子检测组织。TTF-1、p40等属于病理检测范畴；CT影像不能直接读出免疫组化阳性或阴性结果。"}]
+    },
+    {
+      "key": "lcc-reclassification-2017", "title": "大细胞癌：排除性病理定义与历史标签重分类", "original_title": "Clinicopathological and genetic characteristics of pulmonary large cell carcinoma under 2015 WHO classification: a pilot study",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/29246019/", "doi": "10.18632/oncotarget.21736", "pmid": "29246019", "pmcid": "PMC5725061", "year": "2017", "category": "pathology", "classes": ["large_cell_carcinoma"],
+      "authority": "Oncotarget原始研究", "evidence_level": "小样本回顾性病理重分类研究", "verification": "已通过Europe PMC核对全文", "enabled": true,
+      "limitations": "采用2015分类框架的历史研究，非最新版分类原文；仅24例重分类样本，不支持制定通用CT诊断阈值。",
+      "sections": [
+        {"heading": "大细胞癌的形态学边界", "text": "该研究依据2015 WHO框架，将大细胞癌定义为缺乏腺癌、鳞癌、小细胞及神经内分泌分化特征的未分化癌，需要结合切除标本和免疫组化排除其他类型。大细胞神经内分泌癌不能与大细胞癌简单混为一类。"},
+        {"heading": "历史大细胞癌标签与CT预测", "text": "24例旧分类大细胞癌重新评估后仅8例保留为大细胞癌，提示历史数据标签会随病理分类变化。CT肿块大或细胞名称含“大”均不是大细胞癌确诊依据；使用历史CT数据训练时需核验每例病理标签及分类版本。"}
+      ]
+    },
+    {
+      "key": "adeno-thin-ct-2005", "title": "腺癌薄层CT：磨玻璃、空气支气管征与生长方式", "original_title": "Subtypes of peripheral adenocarcinoma of the lung: differentiation by thin-section CT",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/15846496/", "doi": "10.1007/s00330-004-2595-7", "pmid": "15846496", "year": "2005", "category": "ct_features", "classes": ["adenocarcinoma"],
+      "authority": "European Radiology原始研究", "evidence_level": "83例患者 / 87个小腺癌病灶的影像病理相关研究", "verification": "已核对PubMed / Europe PMC摘要", "enabled": true,
+      "limitations": "历史Noguchi分型、外周且不超过3厘米病灶；不能无条件外推到所有肺癌或映射为当前WHO分型。",
+      "sections": [{"heading": "腺癌CT形态关联", "text": "研究比较薄层CT上的形状、空气支气管征、泡状低密度区、毛刺、胸膜牵拉及磨玻璃比例。不同组织生长类型的磨玻璃比例和含气征象存在差异。这些征象可作为影像病理相关线索，但不是细胞形态的直接成像，也不是独立确诊规则。"}]
+    },
+    {
+      "key": "cavitation-ct-2016", "title": "空洞型肺癌CT：腺癌与鳞癌的空洞壁和伴随征象", "original_title": "High-resolution CT findings of primary lung cancer with cavitation: a comparison between adenocarcinoma and squamous cell carcinoma",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/27394062/", "doi": "10.1016/j.crad.2016.06.110", "pmid": "27394062", "year": "2016", "category": "ct_features", "classes": ["adenocarcinoma", "squamous_cell_carcinoma"],
+      "authority": "Clinical Radiology原始研究", "evidence_level": "60例空洞型肿瘤回顾性研究", "verification": "已核对PubMed / Europe PMC摘要", "enabled": true,
+      "limitations": "队列仅限有空洞的肿瘤，47例腺癌和13例鳞癌；不能将结果泛化为所有结节的诊断标准。",
+      "sections": [{"heading": "空洞壁、磨玻璃与肿瘤内支气管扩张", "text": "此回顾队列中鳞癌的最大空洞壁厚度较大，腺癌更常伴磨玻璃影和肿瘤内支气管扩张。空洞壁形态、周围密度和支气管改变可辅助比较，但空洞不是鳞癌专属表现，不能凭单个CT征象确定病理类型。"}]
+    },
+    {
+      "key": "ct-patterns-2024", "title": "肺癌CT征象研究：中央/周围位置、空洞与支气管阻塞", "original_title": "CT Imaging Patterns in Major Histological Types of Lung Cancer",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38672733/", "doi": "10.3390/life14040462", "pmid": "38672733", "pmcid": "PMC11051469", "year": "2024", "category": "ct_features", "classes": ["adenocarcinoma", "squamous_cell_carcinoma"],
+      "authority": "Life原始研究", "evidence_level": "58例病理确诊患者的回顾性研究", "verification": "已核对Europe PMC摘要", "enabled": true,
+      "limitations": "包含腺癌、鳞癌和小细胞癌，不包含本项目的大细胞癌/正常类；小队列关联不是确定性诊断。",
+      "sections": [{"heading": "CT影像征象而非细胞级形态", "text": "研究评估位置、边缘、结构、淋巴结、空洞、支气管阻塞及胸膜受累。腺癌更偏周围型，鳞癌更偏中央型且空洞更常见；其腺癌病例多数也呈实性，不能认为腺癌必然是磨玻璃影。病理仍是分型确认依据。"}]
+    },
+    {
+      "key": "radiomics-multiclass-2023", "title": "多中心CT放射组学分型：批次效应与四亚型预测局限", "original_title": "Phenotyping the Histopathological Subtypes of Non-Small-Cell Lung Carcinoma: How Beneficial Is Radiomics?",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/36980475/", "doi": "10.3390/diagnostics13061167", "pmid": "36980475", "pmcid": "PMC10046953", "year": "2023", "category": "prediction", "classes": ["adenocarcinoma", "squamous_cell_carcinoma", "large_cell_carcinoma"],
+      "authority": "Diagnostics多中心数据研究", "evidence_level": "公开多中心数据的放射组学分类实验", "verification": "已核对PMC文章及Europe PMC摘要", "enabled": true,
+      "limitations": "文中四亚型为腺癌、鳞癌、大细胞癌、NOS，不含正常类；不能与本项目四分类准确率直接比较。",
+      "sections": [
+        {"heading": "CT预测组织学类型的研究方法", "text": "研究从恶性病灶ROI提取放射组学特征，研究重采样、ComBat协调、特征筛选和分类器的影响。纹理及滤波特征可能有预测信息，但所选特征随数据划分变化，并不存在适用于所有病例的唯一CT纹理指纹。"},
+        {"heading": "多中心验证与批次效应", "text": "该研究发现即使重采样仍存在中心或采集批次效应；协调会改变模型性能。四亚型分类准确率约61.41%，二分类表现不同。其NOS指未特指癌，并非正常肺部；研究结果不能直接作为本软件临床效能证据。"}
+      ]
+    },
+    {
+      "key": "radiomics-three-types-2024", "title": "CT预测腺癌、鳞癌与大细胞癌：可解释机器学习研究", "original_title": "Advancing NSCLC pathological subtype prediction with interpretable machine learning: a comprehensive radiomics-based approach",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/38841579/", "doi": "10.3389/fmed.2024.1413990", "pmid": "38841579", "pmcid": "PMC11150591", "year": "2024", "category": "prediction", "classes": ["adenocarcinoma", "squamous_cell_carcinoma", "large_cell_carcinoma"],
+      "authority": "Frontiers in Medicine原始研究", "evidence_level": "317例回顾性队列 / 内部训练验证划分", "verification": "已核对出版社全文与Europe PMC摘要", "enabled": true,
+      "limitations": "内部验证不等于独立多中心临床验证；没有正常对照类别。SMOTE和特征选择须限制在训练数据内以防泄漏。",
+      "sections": [{"heading": "放射组学、分类模型与SHAP解释", "text": "论文以CT提取1834个候选放射组学特征，进行筛选并比较多种分类器，利用SHAP解释对腺癌、鳞癌和大细胞癌的预测。该路线属于统计分型研究，不是从CT直接识别癌细胞。部署前仍需独立数据、按患者划分及各类别校准验证。"}]
+    },
+    {
+      "key": "ibsi-2020", "title": "IBSI：CT放射组学特征标准化与可重复性", "original_title": "The Image Biomarker Standardization Initiative: Standardized Quantitative Radiomics for High-Throughput Image-based Phenotyping",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/32154773/", "doi": "10.1148/radiol.2020191145", "pmid": "32154773", "pmcid": "PMC7193906", "year": "2020", "category": "methods", "classes": ["adenocarcinoma", "squamous_cell_carcinoma", "large_cell_carcinoma", "normal"],
+      "authority": "IBSI / Radiology多团队方法研究", "evidence_level": "影像特征定义与软件一致性验证", "verification": "已核对PubMed / Europe PMC摘要", "enabled": true,
+      "limitations": "特征标准化不代表分类模型已临床有效，也不赋予二维截图可靠的原始HU或三维体积信息。",
+      "sections": [{"heading": "CT预测模型的标准化要求", "text": "IBSI对放射组学特征定义、计算和参考值进行跨软件验证，最终标准化169项特征。开发CT组织学预测时应记录重采样、灰度离散化、分割ROI及特征软件版本；本项目的普通PNG/JPG二维输入不能自动替代带空间信息与HU校准的原始DICOM序列。"}]
+    },
+    {
+      "key": "china-ldct-2025", "title": "中国肺癌低剂量CT筛查指南：2025版要点与正常类边界", "original_title": "China National Lung Cancer Screening Guideline with Low-dose Computed Tomography (2025 Version)",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/41565348/", "doi": "10.3779/j.issn.1009-3419.2025.102.43", "pmid": "41565348", "pmcid": "PMC12972581", "year": "2025", "category": "guideline", "classes": ["normal", "adenocarcinoma", "squamous_cell_carcinoma", "large_cell_carcinoma"],
+      "authority": "中国肺癌早诊早治专家组 / 中国胸部肿瘤研究协作组", "evidence_level": "低剂量CT筛查指南", "verification": "已核对Europe PMC / PubMed摘要", "enabled": true,
+      "limitations": "仅为摘要级筛查知识，不能将筛查阈值当作病理分型规则；具体结节管理需核对全文及患者情况。",
+      "sections": [{"heading": "正常肺部类别并非排除肺癌", "text": "2025版LDCT筛查指南涉及高风险人群选择、结节测量、阳性结节管理及知情共同决策。筛查是风险与随访流程，而非单张影像的永久排癌结论。本软件normal是研究影像类别，不是第四种癌细胞，也不能保证整肺无癌或无需随访。"}]
+    },
+    {
+      "key": "tcia-nsclc-radiomics", "title": "TCIA NSCLC-Radiomics：带临床信息的肺癌CT数据入口", "original_title": "NSCLC-Radiomics",
+      "url": "https://www.cancerimagingarchive.net/collection/nsclc-radiomics/", "year": "数据集动态页面", "category": "dataset", "classes": ["adenocarcinoma", "squamous_cell_carcinoma", "large_cell_carcinoma"],
+      "authority": "TCIA", "evidence_level": "数据资源索引", "verification": "目录元数据已检索；集合页面当前访问失败，未下载影像", "enabled": false,
+      "limitations": "目录显示422名NSCLC患者；不构成包含正常类的完整四分类训练集。下载前核验许可、病理标签版本及患者级划分。",
+      "sections": [{"heading": "待核对的数据资源入口", "text": "仅保存TCIA官方数据集入口，未下载、训练或验证该数据；不参与当前Agent循证检索。"}]
+    },
+    {
+      "key": "tcia-nsclc-radiogenomics", "title": "TCIA NSCLC-Radiogenomics：CT与临床、分子信息", "original_title": "NSCLC-Radiogenomics",
+      "url": "https://www.cancerimagingarchive.net/collection/nsclc-radiogenomics/", "year": "数据集动态页面", "category": "dataset", "classes": ["adenocarcinoma", "squamous_cell_carcinoma"],
+      "authority": "TCIA", "evidence_level": "数据资源索引", "verification": "目录元数据已检索；未下载影像或核对患者级标签", "enabled": false,
+      "limitations": "目录显示211名受试者；组织学预测与基因突变预测是不同任务，不能直接套用同一指标。",
+      "sections": [{"heading": "待核对的数据资源入口", "text": "仅保存官方数据资源索引。后续须检查许可、可用影像模态、标签和缺失信息，不会自动下载大型数据集。"}]
+    },
+    {
+      "key": "tcia-cptac-luad", "title": "CPTAC-LUAD：肺腺癌影像与病理研究入口", "original_title": "CPTAC-LUAD",
+      "url": "https://www.cancerimagingarchive.net/collection/cptac-luad/", "year": "数据集动态页面", "category": "dataset", "classes": ["adenocarcinoma"],
+      "authority": "NCI CPTAC / TCIA", "evidence_level": "多模态数据资源索引", "verification": "官方目录元数据已检索；集合页访问失败，未下载切片", "enabled": false,
+      "limitations": "CT、病理全切片和组学是不同数据模态；须核验每个病例的配对关系、访问许可及标签。",
+      "sections": [{"heading": "腺癌形态学习的数据方向", "text": "可作为后续连接肺腺癌病理形态与放射影像的研究资源入口。目前只保存链接，没有接入病理视觉模型或新增训练。"}]
+    },
+    {
+      "key": "tcia-cptac-lscc", "title": "CPTAC-LSCC：肺鳞癌影像与病理研究入口", "original_title": "CPTAC-LSCC",
+      "url": "https://www.cancerimagingarchive.net/collection/cptac-lscc/", "year": "数据集动态页面", "category": "dataset", "classes": ["squamous_cell_carcinoma"],
+      "authority": "NCI CPTAC / TCIA", "evidence_level": "多模态数据资源索引", "verification": "官方目录元数据已检索；集合页访问失败，未下载切片", "enabled": false,
+      "limitations": "数据的不同部分可能受不同访问政策约束；不能把病理切片性能当作CT分型性能。",
+      "sections": [{"heading": "鳞癌形态学习的数据方向", "text": "可作为后续肺鳞癌病理与CT关联研究入口。尚未下载数据、配对病例或重新训练本地分类模型。"}]
+    }
+  ]
+}

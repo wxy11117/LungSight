@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="same-origin">
+  <title>欢迎回来 · LungSight</title>
+  <style>
+    /* 单文件、无图片和外部依赖。嵌入软件时接收同源父页面的主题色。 */
+    :root {
+      color-scheme: light;
+      --account-surface: #ffffff; --account-field: #f4f8fb;
+      --account-text: #193b48; --account-muted: #627b87;
+      --account-border: #d6e2e9; --account-accent: #087f8e;
+      --account-gradient: linear-gradient(115deg, #76d7cd, #96b7f4);
+      --workspace-backdrop: #eaf2f7;
+      --spring: cubic-bezier(.22, 1.28, .42, 1);
+    }
+    :root[data-theme="dark"] { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: var(--account-text); font: 16px/1.5 Arial, "Microsoft YaHei", sans-serif; background: radial-gradient(ellipse at 20% 10%, #bbdfe64d, transparent 60%), linear-gradient(145deg, #eeeafb, var(--workspace-backdrop)); }
+    body.embedded { background: transparent; }
+    button, input, select { font: inherit; }
+    button, a, input, select { -webkit-tap-highlight-color: transparent; }
+    button, a { touch-action: manipulation; }
+    button { cursor: pointer; }
+    button:disabled { cursor: wait; opacity: .65; }
+    :is(button, a, input, select):focus-visible { outline: 3px solid var(--account-accent); outline-offset: 4px; }
+    [hidden] { display: none !important; }
+    .login-root { width: min(100%, 572px); margin: 0 auto; padding: 22px 18px 30px; }
+    body:not(.embedded) .login-root { margin-top: max(0px, calc((100svh - 750px) / 2)); }
+    .stage { position: relative; width: min(100%, 364px); margin: 0 auto -2px; }
+    .stage-art { display: block; width: 100%; height: auto; overflow: visible; }
+    .floor-shadow { fill: var(--account-text); opacity: .07; }
+    .character { transform-box: fill-box; transform-origin: 50% 100%; transition: transform .7s var(--spring); }
+    .figure { transform-box: fill-box; transform-origin: center; transition: transform .7s var(--spring); }
+    .front, .back { transition: opacity .2s ease; }
+    .back { opacity: 0; }
+    .back-stitch { fill: none; stroke: #fff; stroke-opacity: .4; stroke-width: 2; stroke-linecap: round; stroke-dasharray: 3 5; }
+    .pupil { transition: transform .16s var(--spring); }
+    .mouth { fill: none; stroke: #263142; stroke-width: 2.6; stroke-linecap: round; }
+    .hand { transform-box: fill-box; transform-origin: center; transform: translateY(40px) rotate(-12deg); opacity: 0; transition: transform .68s var(--spring), opacity .24s ease; }
+    .hand-right { transform: translateY(40px) rotate(12deg); }
+    .peeking .character-middle { transform: translateY(-15px) scale(1.055); }
+    .covering .figure { transform: rotateY(180deg); }
+    .covering .front { opacity: 0; }
+    .covering .back { opacity: 1; }
+    .covering .hand { opacity: 1; transform: translateY(0) rotate(0); }
+    .covering .character-left { transform: translateX(-3px) rotate(-3deg); }
+    .covering .character-right { transform: translateX(3px) rotate(3deg); }
+    .scene-caption { height: 25px; margin: 0 0 12px; text-align: center; font-size: 12px; letter-spacing: .035em; color: var(--account-muted); }
+    .login-card { position: relative; padding: 28px 34px 24px; background: var(--account-surface); border: 1px solid var(--account-border); border-radius: 26px; box-shadow: 0 16px 38px #19384a0e, 0 2px 4px #19384a03; transition: background .35s ease, border-color .35s ease, box-shadow .35s ease; }
+    .card-eyebrow { margin: 0 0 8px; color: var(--account-accent); font-size: 11px; font-weight: 700; letter-spacing: .19em; }
+    h1 { margin: 0; font-size: clamp(28px, 3.5vw, 34px); line-height: 1.3; letter-spacing: -.045em; font-weight: 700; }
+    .intro { margin: 9px 0 23px; color: var(--account-muted); font-size: 14px; }
+    fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+    .methods { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin-bottom: 20px; border-radius: 13px; background: var(--account-field); border: 1px solid var(--account-border); }
+    .methods button { min-height: 39px; padding: 6px; border: 0; border-radius: 9px; background: transparent; color: var(--account-muted); font-size: 14px; transition: color .25s ease, background .25s ease, box-shadow .25s ease; }
+    .methods button[aria-pressed="true"] { color: var(--account-text); background: var(--account-surface); font-weight: 700; box-shadow: 0 2px 6px #1636440e; }
+    .field { margin-bottom: 17px; }
+    .field>label { display: block; margin-bottom: 8px; color: var(--account-text); font-size: 14px; font-weight: 600; }
+    .phone-row { display: grid; grid-template-columns: 115px minmax(0, 1fr); gap: 8px; }
+    input, select { min-height: 49px; width: 100%; min-width: 0; border: 1px solid var(--account-border); border-radius: 11px; padding: 12px 13px; background: var(--account-field); color: var(--account-text); transition: border-color .25s ease, box-shadow .25s ease, background .25s ease; }
+    select { padding: 12px 8px; font-size: 13px; }
+    input::placeholder { color: var(--account-muted); opacity: .8; font-size: 14px; }
+    input:focus, select:focus { outline: none; border-color: var(--account-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--account-accent) 12%, transparent); }
+    .password-wrap { position: relative; }
+    .password-wrap input { padding-right: 55px; }
+    .visibility-toggle { display: grid; place-items: center; position: absolute; inset: 3px 4px 3px auto; width: 43px; border: 0; border-radius: 8px; color: var(--account-muted); background: transparent; transition: color .25s ease, background .25s ease, transform .4s var(--spring); }
+    .visibility-toggle:hover { color: var(--account-accent); background: color-mix(in srgb, var(--account-accent) 9%, transparent); }
+    .visibility-toggle:active { transform: scale(.9); }
+    .visibility-toggle svg { width: 21px; height: 21px; }
+    .eye-strike { opacity: 0; transition: opacity .2s ease; }
+    .visibility-toggle[aria-pressed="true"] .eye-strike { opacity: 1; }
+    .submit { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 49px; width: 100%; margin-top: 5px; padding: 12px 18px; border: 0; border-radius: 11px; color: #09212b; background: var(--account-gradient); font-weight: 700; transition: transform .4s var(--spring), box-shadow .3s ease; }
+    .submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 7px 18px #14364c18; }
+    .submit:active:not(:disabled) { transform: translateY(0) scale(.985); }
+    .submit svg { width: 18px; height: 18px; }
+    .register-line { margin: 20px 0 0; text-align: center; font-size: 13px; color: var(--account-muted); }
+    .register-link { padding: 6px 2px; border: 0; color: var(--account-accent); background: transparent; font-size: 14px; font-weight: 600; text-underline-offset: 4px; }
+    .register-link:hover { text-decoration: underline; }
+    .notice { margin: 0 0 15px; padding: 11px 13px; border: 1px solid color-mix(in srgb, var(--account-accent) 35%, transparent); border-radius: 10px; font-size: 13px; color: var(--account-text); background: var(--account-field); overflow-wrap: anywhere; }
+    .footer-note { display: flex; justify-content: center; align-items: center; gap: 6px; margin: 17px 0 0; font-size: 12px; color: var(--account-muted); }
+    .footer-note svg { width: 13px; height: 13px; flex-shrink: 0; }
+    @media (max-width: 430px) {
+      .login-root { padding: 18px 2px 22px; }
+      .stage { width: min(90%, 300px); }
+      .login-card { padding: 24px 20px 20px; border-radius: 22px; }
+      .intro { margin-bottom: 20px; }
+      .phone-row { grid-template-columns: 100px minmax(0, 1fr); }
+      .footer-note { font-size: 11px; }
+    }
+    /* 尊重系统“减少动态效果”设置，保留状态反馈并关闭位移动画。 */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: .01ms !important; }
+      .peeking .character-middle { transform: none; }
+      .pupil { transform: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <script>if (window.parent !== window) document.body.classList.add('embedded');</script>
+  <main class="login-root">
+    <!-- 三个内联 SVG 小人：正面、背面、双手分层，完全通过状态类控制。 -->
+    <div class="stage normal" id="companions" aria-hidden="true">
+      <svg class="stage-art" viewBox="0 0 380 200" xmlns="http://www.w3.org/2000/svg">
+        <ellipse class="floor-shadow" cx="190" cy="189" rx="159" ry="9"/>
+        <g class="character character-middle">
+          <g class="figure">
+            <path fill="#8974e9" d="M139 187V40Q139 23 155 23H224Q239 23 239 40V187Z"/>
+            <path fill="#fff" opacity=".14" d="M146 47Q146 31 159 31H220Q224 31 224 35H160Q151 35 151 48V174H146Z"/>
+            <g class="front">
+              <path d="M167 65l10-3M202 62l10 3" stroke="#514090" stroke-width="2.6" stroke-linecap="round"/>
+              <g class="eye"><circle cx="174" cy="79" r="9" fill="#fff"/><g class="pupil"><circle cx="174" cy="79" r="4.4" fill="#25273d"/><circle cx="175.4" cy="77.7" r="1.4" fill="#fff"/></g></g>
+              <g class="eye"><circle cx="207" cy="79" r="9" fill="#fff"/><g class="pupil"><circle cx="207" cy="79" r="4.4" fill="#25273d"/><circle cx="208.4" cy="77.7" r="1.4" fill="#fff"/></g></g>
+              <path class="mouth" d="M184 102q7 7 14 0"/>
+              <ellipse cx="160" cy="95" rx="7" ry="3" fill="#bfa7f5"/><ellipse cx="220" cy="95" rx="7" ry="3" fill="#bfa7f5"/>
+            </g>
+            <g class="back"><path class="back-stitch" d="M189 42v126"/><path d="M171 54q18 10 37 0" fill="none" stroke="#6150b3" stroke-width="3" stroke-linecap="round"/>
+              <g class="hand"><path d="M148 127q-11-24 10-50" fill="none" stroke="#a691f0" stroke-width="13" stroke-linecap="round"/><ellipse cx="160" cy="77" rx="11" ry="17" fill="#b6a3f7" transform="rotate(15 160 77)"/></g>
+              <g class="hand hand-right"><path d="M230 127q11-24-10-50" fill="none" stroke="#a691f0" stroke-width="13" stroke-linecap="round"/><ellipse cx="219" cy="77" rx="11" ry="17" fill="#b6a3f7" transform="rotate(-15 219 77)"/></g>
+            </g>
+          </g>
+        </g>
+        <g class="character character-left">
+          <g class="figure">
+            <path fill="#f3aa7e" d="M39 187v-45a57 57 0 0 1 114 0v45Z"/>
+            <path d="M48 143q0-41 38-49" stroke="#fff" stroke-opacity=".25" stroke-width="4" stroke-linecap="round" fill="none"/>
+            <g class="front">
+              <g class="eye"><circle cx="78" cy="130" r="8.5" fill="#fff"/><g class="pupil"><circle cx="78" cy="130" r="4.2" fill="#392f31"/><circle cx="79.4" cy="128.7" r="1.3" fill="#fff"/></g></g>
+              <g class="eye"><circle cx="113" cy="130" r="8.5" fill="#fff"/><g class="pupil"><circle cx="113" cy="130" r="4.2" fill="#392f31"/><circle cx="114.4" cy="128.7" r="1.3" fill="#fff"/></g></g>
+              <path class="mouth" d="M87 151q9 11 18 0"/><ellipse cx="62" cy="145" rx="7" ry="3" fill="#e98871"/><ellipse cx="130" cy="145" rx="7" ry="3" fill="#e98871"/>
+            </g>
+            <g class="back"><path class="back-stitch" d="M96 108v67"/>
+              <g class="hand"><path d="M49 170q-12-22 7-40" fill="none" stroke="#e5966c" stroke-width="12" stroke-linecap="round"/><ellipse cx="59" cy="128" rx="10" ry="15" fill="#ffd0a7" transform="rotate(15 59 128)"/></g>
+              <g class="hand hand-right"><path d="M142 170q12-22-7-40" fill="none" stroke="#e5966c" stroke-width="12" stroke-linecap="round"/><ellipse cx="132" cy="128" rx="10" ry="15" fill="#ffd0a7" transform="rotate(-15 132 128)"/></g>
+            </g>
+          </g>
+        </g>
+        <g class="character character-right">
+          <g class="figure">
+            <path fill="#67c8ba" d="M229 187V110a48 48 0 0 1 96 0v77Z"/>
+            <path d="M236 114q0-32 29-42" stroke="#fff" stroke-opacity=".23" stroke-width="4" stroke-linecap="round" fill="none"/>
+            <g class="front">
+              <g class="eye"><circle cx="259" cy="112" r="8.5" fill="#fff"/><g class="pupil"><circle cx="259" cy="112" r="4.2" fill="#263d3d"/><circle cx="260.4" cy="110.7" r="1.3" fill="#fff"/></g></g>
+              <g class="eye"><circle cx="293" cy="112" r="8.5" fill="#fff"/><g class="pupil"><circle cx="293" cy="112" r="4.2" fill="#263d3d"/><circle cx="294.4" cy="110.7" r="1.3" fill="#fff"/></g></g>
+              <path class="mouth" d="M270 135q6 5 12 0"/><ellipse cx="248" cy="128" rx="6" ry="3" fill="#3fac9f"/><ellipse cx="306" cy="128" rx="6" ry="3" fill="#3fac9f"/>
+            </g>
+            <g class="back"><path class="back-stitch" d="M277 84v89"/>
+              <g class="hand"><path d="M236 157q-11-24 9-47" fill="none" stroke="#4eae9f" stroke-width="12" stroke-linecap="round"/><ellipse cx="246" cy="108" rx="10" ry="16" fill="#9de3cf" transform="rotate(15 246 108)"/></g>
+              <g class="hand hand-right"><path d="M317 157q11-24-9-47" fill="none" stroke="#4eae9f" stroke-width="12" stroke-linecap="round"/><ellipse cx="307" cy="108" rx="10" ry="16" fill="#9de3cf" transform="rotate(-15 307 108)"/></g>
+            </g>
+          </g>
+        </g>
+      </svg>
+    </div>
+    <p class="scene-caption" id="scene-caption">很高兴，又见到你。</p>
+    <section class="login-card" aria-labelledby="welcome-title">
+      <p class="card-eyebrow">LUNGSIGHT · PERSONAL WORKSPACE</p>
+      <h1 id="welcome-title">欢迎回来</h1>
+      <p class="intro">登录账号，继续你的医学探索。</p>
+      <div class="notice" id="notice" role="alert" hidden></div>
+      <form id="login-form" aria-busy="false">
+        <fieldset id="login-fields">
+          <div class="methods" role="group" aria-label="登录方式">
+            <button type="button" data-method="phone" aria-pressed="true">手机号登录</button>
+            <button type="button" data-method="email" aria-pressed="false">邮箱登录</button>
+          </div>
+          <div class="field" id="phone-field">
+            <label for="phone">手机号</label>
+            <div class="phone-row">
+              <select id="calling-code" aria-label="手机号区号"><option value="+86">+86 大陆</option><option value="+852">+852 香港</option><option value="+853">+853 澳门</option><option value="+886">+886 台湾</option></select>
+              <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="请输入手机号" minlength="8" maxlength="20" required>
+            </div>
+          </div>
+          <div class="field" id="email-field" hidden>
+            <label for="email">电子邮箱</label>
+            <input id="email" name="email" type="email" autocomplete="username" placeholder="name@example.com" maxlength="254" disabled>
+          </div>
+          <div class="field">
+            <label for="password">账号密码</label>
+            <div class="password-wrap">
+              <input id="password" name="password" type="password" autocomplete="current-password" placeholder="请输入账号密码" maxlength="128" required>
+              <button class="visibility-toggle" id="password-toggle" type="button" aria-label="显示密码" aria-controls="password" aria-pressed="false" title="显示密码">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/><path class="eye-strike" d="m3 3 18 18"/></svg>
+              </button>
+            </div>
+          </div>
+          <button type="submit" class="submit" id="submit"><span id="submit-label">登录工作区</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6"/></svg></button>
+        </fieldset>
+      </form>
+      <p class="register-line">第一次使用？ <button type="button" class="register-link" id="register">创建医生账号 <span aria-hidden="true">↗</span></button></p>
+    </section>
+    <p class="footer-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3"/></svg>你的个人医学工作台 · LungSight</p>
+  </main>
+  <script>
+    'use strict';
+    // 只记录界面状态；账号密码不写入本地存储，也不通过 postMessage 传递。
+    const embedded = window.parent !== window;
+    const root = document.documentElement;
+    const scene = document.getElementById('companions');
+    const caption = document.getElementById('scene-caption');
+    const phone = document.getElementById('phone');
+    const email = document.getElementById('email');
+    const password = document.getElementById('password');
+    const toggle = document.getElementById('password-toggle');
+    const notice = document.getElementById('notice');
+    const form = document.getElementById('login-form');
+    const fields = document.getElementById('login-fields');
+    const register = document.getElementById('register');
+    const submitLabel = document.getElementById('submit-label');
+    const eyes = Array.from(document.querySelectorAll('.eye'));
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let method = 'phone';
+    let visible = false;
+    let identityFocused = false;
+    let busy = false;
+    let pointerFrame = 0;
+    let apiBase = 'http://127.0.0.1:8001';
+    let configured = !embedded;
+    let activeRequest = null;
+
+    function notify(type, data = {}) {
+      if (embedded) window.parent.postMessage({ type, ...data }, window.location.origin);
+    }
+    function characterState(showPassword, focusIdentity) {
+      return showPassword ? 'covering' : focusIdentity ? 'peeking' : 'normal';
+    }
+    function updateScene() {
+      scene.className = 'stage ' + characterState(visible, identityFocused);
+      caption.textContent = visible ? '我们转过身，你安心输入。' : identityFocused ? '让我看看，是哪位老朋友？' : '很高兴，又见到你。';
+    }
+    function resetEyes() {
+      cancelAnimationFrame(pointerFrame);
+      eyes.forEach((eye) => { eye.querySelector('.pupil').style.transform = 'translate(0px, 0px)'; });
+    }
+    // atan2 得到角度，距离越近偏移越小；最大偏移限制在眼白内。
+    function gazeOffset(dx, dy) {
+      const angle = Math.atan2(dy, dx);
+      const distance = Math.min(4, Math.hypot(dx, dy) / 30);
+      return { x: Math.cos(angle) * distance, y: Math.sin(angle) * distance };
+    }
+    function trackPointer(x, y) {
+      if (visible || reducedMotion.matches || !Number.isFinite(x) || !Number.isFinite(y)) return;
+      cancelAnimationFrame(pointerFrame);
+      pointerFrame = requestAnimationFrame(() => {
+        if (visible) return;
+        // 先读全部位置再写样式，避免鼠标移动时重复触发布局计算。
+        const offsets = eyes.map((eye) => {
+          const rect = eye.getBoundingClientRect();
+          const scale = document.querySelector('.stage-art').getBoundingClientRect().width / 380;
+          return gazeOffset((x - rect.left - rect.width / 2) / scale, (y - rect.top - rect.height / 2) / scale);
+        });
+        eyes.forEach((eye, index) => { eye.querySelector('.pupil').style.transform = `translate(${offsets[index].x}px, ${offsets[index].y}px)`; });
+      });
+    }
+    function setPasswordVisibility(next) {
+      visible = next;
+      password.type = next ? 'text' : 'password';
+      toggle.setAttribute('aria-pressed', String(next));
+      toggle.setAttribute('aria-label', next ? '隐藏密码' : '显示密码');
+      toggle.title = next ? '隐藏密码' : '显示密码';
+      resetEyes();
+      updateScene();
+    }
+    function setNotice(message) {
+      notice.textContent = message;
+      notice.hidden = !message;
+    }
+    function setBusy(next) {
+      busy = next;
+      fields.disabled = next;
+      register.disabled = next;
+      form.setAttribute('aria-busy', String(next));
+      submitLabel.textContent = next ? '正在登录…' : '登录工作区';
+    }
+    function loginIdentity(selectedMethod, number, code, address) {
+      return selectedMethod === 'email' ? { email: address.trim().toLowerCase() } : { phone: code + number.trim().replace(/[ -]/g, '') };
+    }
+    function switchMethod(next) {
+      if (busy || next === method) return;
+      method = next;
+      document.querySelectorAll('[data-method]').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.method === next)));
+      document.getElementById('phone-field').hidden = next !== 'phone';
+      document.getElementById('email-field').hidden = next !== 'email';
+      phone.disabled = next !== 'phone'; phone.required = next === 'phone';
+      email.disabled = next !== 'email'; email.required = next === 'email';
+      password.value = '';
+      setPasswordVisibility(false);
+      setNotice('');
+      (next === 'phone' ? phone : email).focus();
+    }
+    [phone, email].forEach((input) => {
+      input.addEventListener('focus', () => { identityFocused = true; updateScene(); });
+      input.addEventListener('blur', () => { identityFocused = false; updateScene(); });
+    });
+    document.querySelectorAll('[data-method]').forEach((button) => button.addEventListener('click', () => switchMethod(button.dataset.method)));
+    toggle.addEventListener('click', () => setPasswordVisibility(!visible));
+    document.addEventListener('mousemove', (event) => trackPointer(event.clientX, event.clientY), { passive: true });
+    document.documentElement.addEventListener('mouseleave', resetEyes);
+    window.addEventListener('blur', resetEyes);
+    reducedMotion.addEventListener('change', resetEyes);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) setPasswordVisibility(false); });
+    register.addEventListener('click', () => {
+      password.value = ''; setPasswordVisibility(false);
+      if (embedded) notify('lungsight:register');
+      else if (location.protocol === 'file:') setNotice('此文件可独立预览动效。创建账号请打开运行中的 LungSight 登录页。');
+      else window.location.assign('/auth?mode=register');
+    });
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (busy) return;
+      if (location.protocol === 'file:') { setNotice('此文件可独立预览动效。实际登录请打开 http://127.0.0.1:3000/auth。'); return; }
+      if (!configured) { setNotice('登录服务正在初始化，请稍后重试。'); return; }
+      if (!form.reportValidity()) return;
+      setNotice(''); setPasswordVisibility(false); setBusy(true);
+      const controller = new AbortController();
+      activeRequest = controller;
+      const timeout = setTimeout(() => controller.abort(), 20000);
+      try {
+        const response = await fetch(apiBase + '/api/auth/login', {
+          method: 'POST', credentials: 'include', signal: controller.signal,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...loginIdentity(method, phone.value, document.getElementById('calling-code').value, email.value), password: password.value }),
+        });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok) throw new Error(typeof payload?.detail === 'string' ? payload.detail : response.status >= 500 ? '登录服务暂不可用，请稍后重试。' : '登录失败，请检查账号信息。');
+        password.value = '';
+        submitLabel.textContent = '登录成功，正在进入…';
+        if (embedded) notify('lungsight:login-success');
+        else window.location.replace('/agent');
+      } catch (error) {
+        setNotice(error.name === 'AbortError' ? '登录连接超时，请稍后重试。' : error instanceof TypeError ? '无法连接本地服务，请启动服务后重试。' : error.message);
+        setBusy(false);
+      } finally { clearTimeout(timeout); activeRequest = null; }
+    });
+    // 外观同步仅接受同源父窗口，并逐项读取允许的变量，不执行消息中的代码。
+    const tokenNames = ['--account-surface', '--account-field', '--account-text', '--account-muted', '--account-border', '--account-accent', '--account-gradient', '--workspace-backdrop'];
+    window.addEventListener('message', (event) => {
+      if (!embedded || event.origin !== window.location.origin || event.source !== window.parent || !event.data) return;
+      const data = event.data;
+      if (data.type === 'lungsight:login-config') {
+        if (['light', 'dark', 'eye'].includes(data.theme)) root.dataset.theme = data.theme;
+        tokenNames.forEach((key) => { if (typeof data.tokens?.[key] === 'string' && data.tokens[key]) root.style.setProperty(key, data.tokens[key]); });
+        try { const url = new URL(data.apiBaseUrl); if (['http:', 'https:'].includes(url.protocol)) { apiBase = url.href.replace(/\/$/, ''); configured = true; } } catch { /* 无效配置保持当前设置。 */ }
+      }
+      if (data.type === 'lungsight:login-pointer') trackPointer(data.x, data.y);
+      if (data.type === 'lungsight:login-pointer-reset') resetEyes();
+      if (data.type === 'lungsight:login-session-error') { setBusy(false); setNotice('会话未能建立，请确认浏览器允许本站 Cookie 后重试登录。'); }
+    });
+    // 同步内容高度，让手机、错误提示和文字放大时都能自然滚动，不产生内层滚动条。
+    const resizeObserver = new ResizeObserver(() => notify('lungsight:login-resize', { height: document.querySelector('.login-root').getBoundingClientRect().height + 1 }));
+    resizeObserver.observe(document.querySelector('.login-root'));
+    window.addEventListener('pagehide', () => { password.value = ''; setPasswordVisibility(false); activeRequest?.abort(); });
+    notify('lungsight:login-ready');
+  </script>
+</body>
+</html>

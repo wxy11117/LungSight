@@ -1,0 +1,98 @@
+{
+  "schema_version": "lungsight-model-manifest-v2",
+  "model_name": "ResNet18-Research-FiveFold",
+  "model_version": "research-fivefold-20260902-165455",
+  "task_definition": {
+    "task": "closed-set 2D CT image research ranking",
+    "target": "three non-small-cell lung cancer histology labels plus a dataset normal-reference label",
+    "not_a_target": [
+      "cancer cell morphology",
+      "pathologic diagnosis",
+      "cancer probability",
+      "stage",
+      "treatment decision"
+    ]
+  },
+  "lineage": {
+    "architecture_matches_original_plan": true,
+    "exact_original_weights": false,
+    "origin": "retrained on the audited weak-label research subset",
+    "source_run": "lung-training/runs/research-fivefold-20260902-165455",
+    "source_report": "lung-training/runs/research-fivefold-20260902-165455/research-report.json",
+    "base_architecture": "five independently trained ResNet18 classifiers with probability averaging"
+  },
+  "class_names": [
+    "adenocarcinoma",
+    "large_cell_carcinoma",
+    "normal",
+    "squamous_cell_carcinoma"
+  ],
+  "class_names_cn": ["腺癌", "大细胞癌", "正常肺部", "鳞状细胞癌"],
+  "weights": {
+    "resnet18_research_fold0_best.pt": "45173a3be467123db69d9ef315886b1334d1c90793b39176b680a708bcff54a5",
+    "resnet18_research_fold1_best.pt": "9d42bafe99944f3ba404c6e1c2c767f1fa72f7d69e1f7dcef98766c2f3e90472",
+    "resnet18_research_fold2_best.pt": "7d892dc550c546095d780c09feb65a04c45938e1d3887ac958979a4302319516",
+    "resnet18_research_fold3_best.pt": "e2952eb1e8d1a3ce40f17ac3be1dcdcbedaac5437e254c5e5c31ad4927cfcaa5",
+    "resnet18_research_fold4_best.pt": "9d9cf14b5e6dcd2e5bee6105d6e3743849ebf2284d21da4048c52f5d3114ec2d"
+  },
+  "temperature": 0.56,
+  "transform": {
+    "size": 224,
+    "resize": "aspect_ratio_pad_black",
+    "normalization": "imagenet"
+  },
+  "input_contract": {
+    "training_input": "exported 2D PNG/JPEG-style images",
+    "serving_2d_equivalence_verified": false,
+    "dicom_pipeline_equivalence_verified": false,
+    "patient_level_grouping_verified": false,
+    "lesion_roi_required_by_runtime": false,
+    "lesion_roi_validation_passed": false,
+    "out_of_distribution_detection_available": false
+  },
+  "validation_summary": {
+    "method": "five-fold out-of-fold internal validation",
+    "images": 546,
+    "accuracy": 0.8498168498168498,
+    "macro_f1": 0.8493158176010267,
+    "balanced_accuracy": 0.8552498740739856,
+    "calibrated_ece_10bin": 0.018541375349988544
+  },
+  "research_only": true,
+  "weak_labels": true,
+  "patient_independence_verified": false,
+  "external_validation_passed": false,
+  "clinical_use_allowed": false,
+  "abstention": {
+    "single_image": {
+      "minimum_top_probability": 0.7,
+      "minimum_top_two_margin": 0.2,
+      "minimum_fold_agreement": 4,
+      "selection_source": "calibrated weak-label out-of-fold analysis only",
+      "probability_margin_only_coverage": 0.8021978021978022,
+      "probability_margin_only_accepted_label_agreement": 0.9246575342465754,
+      "fold_agreement_effect_not_estimable_from_oof_file": true,
+      "clinical_threshold": false
+    },
+    "case_series": {
+      "validated": false,
+      "forced_abstention": true,
+      "reason": "No patient-level complete-series validation, lesion ROI validation, or DICOM train-serving equivalence study"
+    }
+  },
+  "promotion_gates": {
+    "patient_independence": false,
+    "external_validation": false,
+    "dicom_train_serving_equivalence": false,
+    "lesion_localization": false,
+    "clinical_use": false
+  },
+  "activation": {
+    "status": "LOCAL_RESEARCH_PREVIEW",
+    "runtime_enabled": true,
+    "deployment_performed": false,
+    "promotion_approved": false,
+    "reason": "Enabled only to exercise the local software workflow; not promoted as a clinical model"
+  },
+  "prototype_active": true
+}
