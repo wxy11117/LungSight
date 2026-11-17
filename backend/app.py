@@ -881,6 +881,15 @@ class ModelRuntime:
         self.models = []
         self.device = "uninitialized"
         self.loaded_at: float | None = None
+        self.load_error: str | None = None
+
+    @property
+    def ready(self) -> bool:
+        return len(self.models) == 5
+
+    def require_ready(self) -> None:
+        if not self.ready:
+            raise HTTPException(503, self.load_error or "五折模型尚未就绪，请在设置页检查本地模型状态。")
 
     @staticmethod
     def _sha256(path: Path) -> str:
@@ -972,14 +981,16 @@ class ModelRuntime:
         else:
             device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        self.models = []
+        models = []
         for checkpoint_path in self.verify_weights():
             model = self.build_model().to(device)
             model.load_state_dict(self._load_state_dict(checkpoint_path, device), strict=True)
             model.eval()
-            self.models.append(model)
+            models.append(model)
+        self.models = models
         self.device = str(device)
         self.loaded_at = time.time()
+        self.load_error = None
 
     def predict(self, image: Image.Image) -> dict:
         import torch
@@ -1122,7 +1133,15 @@ async def lifespan(_: FastAPI):
         build_bundled_knowledge_base(DATABASE_PATH, BASE_DIR.parent)
     seed_medical_library(DATABASE_PATH)
     apply_library_presentation(DATABASE_PATH)
-    runtime.load()
+    try:
+        runtime.load()
+    except FileNotFoundError:
+        runtime.models.clear()
+        runtime.load_error = "本地模型文件不完整。请修复安装或补齐清单对应的五个权重，然后重启软件。账号、历史记录与问答仍可使用。"
+    except Exception:
+        runtime.models.clear()
+        # Do not expose local paths or dependency exception details over HTTP.
+        runtime.load_error = "本地模型未能通过校验或加载。请检查安装完整性与运行环境，然后重启软件。账号、历史记录与问答仍可使用。"
     workbench.queue().start()
     try:
         yield
@@ -1140,6 +1159,8 @@ async def safe_auth_validation(request: Request, exc: RequestValidationError):
     if request.url.path.startswith("/api/auth/"):
         # Pydantic's default error body includes rejected inputs, including passwords.
         return JSONResponse(status_code=422, content={"detail": "填写信息不完整或格式不正确，请检查必填项、账号方式和字段长度。"}, headers={"Cache-Control": "no-store"})
+    if request.url.path.startswith("/api/settings/llm"):
+        return JSONResponse(status_code=422, content={"detail": "模型服务配置格式不正确，请检查服务商、模型名称和密钥。"}, headers={"Cache-Control": "no-store"})
     return await request_validation_exception_handler(request, exc)
 
 
@@ -1437,6 +1458,10 @@ def test_llm_settings(
         )
         provider = create_llm_provider(provider=provider_id, api_key=api_key, model=model)
         getattr(provider, "check_connection")()
+    except ValueError as exc:
+        message = str(exc)
+        mark_llm_verification(DATABASE_PATH, user_id=user["user_id"], provider=request.provider, success=False, error=message)
+        raise HTTPException(status_code=422, detail=message) from exc
     except LookupError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except AuthenticationError as exc:
@@ -1678,6 +1703,9 @@ def health() -> dict:
         "status": "ok" if len(runtime.models) == 5 else "unavailable",
         "models_loaded": len(runtime.models),
         "device": runtime.device,
+        "model_ready": runtime.ready,
+        "model_error": runtime.load_error,
+        "expected_models": 5,
     }
 
 
@@ -1726,6 +1754,7 @@ async def analyze(
 
 
 def analyze_image_payload(payload: bytes, filename: str, user: dict, *, task_id=None, progress=lambda stage: None) -> dict:
+    runtime.require_ready()
     suffix = Path(filename).suffix.lower()
     try:
         with Image.open(io.BytesIO(payload)) as opened:

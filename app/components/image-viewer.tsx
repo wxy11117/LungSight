@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { PointerEvent } from 'react';
 import { apiFetch, responseMessage } from '../auth-client';
 import { boundedPan, clamp, fitImage, imagePoint } from './viewer-geometry';
+import { confirmUnsavedChanges, useUnsavedChanges } from './unsaved-changes';
 
 type PointNote = { id: string; x: number; y: number; note: string };
 type AnnotationDocument = { revision: number; items: PointNote[] };
@@ -35,6 +36,7 @@ function ViewerCanvas({ src, attentionSrc, taskId, title, sliceIndex = 0, sliceC
   const [imageError, setImageError] = useState(false);
   const [imageReady, setImageReady] = useState(false);
   const [attentionError, setAttentionError] = useState(false);
+  useUnsavedChanges(!!draft, saving);
   const fitted = fitImage(size.width, size.height, viewport.width, viewport.height);
 
   useEffect(() => {
@@ -73,7 +75,7 @@ function ViewerCanvas({ src, attentionSrc, taskId, title, sliceIndex = 0, sliceC
     const start = drag.current; drag.current = null;
     if (!marking || !start || !plane.current || Math.hypot(event.clientX - start.x, event.clientY - start.y) > 6) return;
     const point = imagePoint(event.clientX, event.clientY, plane.current.getBoundingClientRect());
-    if (point) { setDraft(point); setNote(''); }
+    if (point && (!draft || confirmUnsavedChanges())) { setDraft(point); setNote(''); }
   };
   const save = async (items: PointNote[]) => {
     if (!taskId || saving) return;
@@ -93,7 +95,7 @@ function ViewerCanvas({ src, attentionSrc, taskId, title, sliceIndex = 0, sliceC
       <button type="button" aria-label="放大影像" onClick={() => changeZoom(zoom + .25)} disabled={zoom === 6}>＋</button>
       <button type="button" onClick={reset}>重置视图</button>
       <button type="button" disabled={!attentionSrc || attentionError} aria-pressed={overlay} onClick={() => setOverlay(!overlay)}>Grad-CAM 叠加</button>
-      {taskId && <button type="button" disabled={!notesReady || saving || annotations.items.length >= 50 || imageError || !imageReady} aria-pressed={marking} onClick={() => { setMarking(!marking); setDraft(null); }}>人工标记</button>}
+      {taskId && <button type="button" disabled={!notesReady || saving || annotations.items.length >= 50 || imageError || !imageReady} aria-pressed={marking} onClick={() => { if (!draft || confirmUnsavedChanges()) { setMarking(!marking); setDraft(null); } }}>人工标记</button>}
     </div>
     <div className={`viewer-stage ${marking ? 'is-marking' : ''}`} ref={stage} tabIndex={0} role="region" aria-label="影像区域，拖动平移，左右键切片，加减键缩放，零键重置"
       onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={() => { drag.current = null; }}
@@ -123,7 +125,7 @@ function ViewerCanvas({ src, attentionSrc, taskId, title, sliceIndex = 0, sliceC
     {sliceCount > 1 && <div className="viewer-slices"><button type="button" disabled={sliceIndex === 0} onClick={() => onSliceChange?.(sliceIndex - 1)}>上一张</button><label>已分析切片 {sliceIndex + 1} / {sliceCount}<input aria-label="切片位置" type="range" min="0" max={sliceCount - 1} value={sliceIndex} onChange={event => onSliceChange?.(Number(event.target.value))} /></label><button type="button" disabled={sliceIndex >= sliceCount - 1} onClick={() => onSliceChange?.(sliceIndex + 1)}>下一张</button></div>}
     <p className="viewer-scope">调节仅影响显示，不改变推理输入。亮度与对比度不是原始 DICOM 的 HU 窗宽窗位；此处浏览已保存的分析切片。</p>
     {attentionError && <p role="alert">注意力图未能加载，原图仍可查看。</p>}
-    {draft && <div className="viewer-note-editor"><label>人工备注（切换切片前请先保存；请勿填写身份信息）<textarea autoFocus maxLength={500} value={note} onChange={event => setNote(event.target.value)} placeholder="记录此位置需要查看或讨论的内容" /></label><button type="button" disabled={saving || !note.trim()} onClick={() => void save([...annotations.items, { ...draft, id: crypto.randomUUID(), note: note.trim() }])}>{saving ? '保存中…' : '保存标记'}</button><button type="button" disabled={saving} onClick={() => setDraft(null)}>取消标记</button></div>}
+    {draft && <div className="viewer-note-editor"><label>人工备注（未保存时切换会提醒；请勿填写身份信息）<textarea autoFocus maxLength={500} value={note} onChange={event => setNote(event.target.value)} placeholder="记录此位置需要查看或讨论的内容" /></label><button type="button" disabled={saving || !note.trim()} onClick={() => void save([...annotations.items, { ...draft, id: crypto.randomUUID(), note: note.trim() }])}>{saving ? '保存中…' : '保存标记'}</button><button type="button" disabled={saving} onClick={() => setDraft(null)}>取消标记</button></div>}
     {error && <p className="workbench-error" role="alert">{error}</p>}
     {!!annotations.items.length && <ol className="viewer-notes">{annotations.items.map((item, index) => <li key={item.id}><b>人工标记 {index + 1}</b><p>{item.note}</p><a href={`/agent?task=${encodeURIComponent(taskId || '')}&focus=${encodeURIComponent(`人工标记 ${index + 1}：${item.note}。这是用户备注，并非已验证的影像发现。请说明需要核对的资料和局限。`)}`}>带入当前影像问答</a><button type="button" disabled={saving} onClick={() => void save(annotations.items.filter(point => point.id !== item.id))}>移除标记</button></li>)}</ol>}
   </section>;

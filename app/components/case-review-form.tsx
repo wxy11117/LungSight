@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { apiFetch, responseMessage } from '../auth-client';
+import { useUnsavedChanges } from './unsaved-changes';
 
 export type Review = { reviewer_name: string; decision: string; corrected_class_cn: string | null; comment: string; reviewed_at: string };
 const classes = { adenocarcinoma: '腺癌', large_cell_carcinoma: '大细胞癌', normal: '正常肺部', squamous_cell_carcinoma: '鳞状细胞癌' };
@@ -12,6 +13,8 @@ export default function CaseReviewForm({ taskId, review, onSaved }: { taskId: st
   const [comment, setComment] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [dirty, setDirty] = useState(false);
+  useUnsavedChanges(!review && dirty, saving);
   useEffect(() => {
     const controller = new AbortController();
     void apiFetch('/api/auth/me', { signal: controller.signal }).then(async response => {
@@ -20,12 +23,12 @@ export default function CaseReviewForm({ taskId, review, onSaved }: { taskId: st
     return () => controller.abort();
   }, []);
   if (review) return <section className="case-review-summary"><h3>已保存复核</h3><b>{review.decision === 'UNDETERMINED' ? '无法判断' : review.decision === 'CORRECT' ? `修正为：${review.corrected_class_cn}` : '确认研究模型排序'}</b><p>{review.comment || '未填写备注'}</p><small>{review.reviewer_name} · {new Date(review.reviewed_at).toLocaleString('zh-CN')} · 该复核已锁定</small></section>;
-  return <form className="case-review-form" onSubmit={async event => {
+  return <form className="case-review-form" onChange={() => setDirty(true)} onSubmit={async event => {
     event.preventDefault(); if (saving) return; setSaving(true); setError('');
     try {
       const response = await apiFetch(`/api/tasks/${encodeURIComponent(taskId)}/review`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ decision, reviewer_name: name.trim(), corrected_class: decision === 'CORRECT' ? correctedClass : null, comment: comment.trim() }) });
       if (!response.ok) throw new Error(await responseMessage(response, '复核保存失败，输入已保留'));
-      onSaved();
+      setDirty(false); onSaved();
     } catch (reason) { setError(reason instanceof Error ? reason.message : '复核保存失败'); }
     finally { setSaving(false); }
   }}><h3>当前切片复核</h3><label>复核意见<select value={decision} disabled={saving} onChange={event => setDecision(event.target.value)}><option value="UNDETERMINED">无法判断 / 需要进一步核对</option><option value="CONFIRM">确认研究模型排序</option><option value="CORRECT">修正研究分类</option></select></label>

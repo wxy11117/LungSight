@@ -6,6 +6,7 @@ import BackToAgent from '../back-to-agent';
 import { apiFetch, responseMessage } from '../auth-client';
 import CaseTable from '../cases/case-table';
 import type { CaseTask } from '../cases/case-actions';
+import { ModelStatusNotice, useModelStatus } from '../components/model-status';
 
 type ProviderId = 'openai' | 'kimi' | 'deepseek';
 type ProviderSetting = {
@@ -26,6 +27,7 @@ const providerNames: Record<ProviderId, string> = { openai: 'ChatGPT', kimi: 'Ki
 const providerCodes: Record<ProviderId, string> = { openai: 'AI', kimi: 'K', deepseek: 'DS' };
 
 export default function SettingsCenter() {
+  const modelStatus = useModelStatus();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [usage, setUsage] = useState<Usage>({ calls: 0, input_tokens: 0, output_tokens: 0, total_tokens: 0 });
   const [selectedId, setSelectedId] = useState<ProviderId>('openai');
@@ -126,6 +128,7 @@ export default function SettingsCenter() {
     <div className="settings-layout">
       <aside className="settings-nav"><span>SETTINGS</span><h1>设置中心</h1><nav><a className="active" href="#model-services"><i>AI</i><span><b>模型服务</b><small>API、模型与连接状态</small></span></a><button type="button" onClick={showArchive}><i>AR</i><span><b>查看归档</b><small>恢复或永久删除病例</small></span></button><a href="#local-data"><i>DB</i><span><b>本地数据</b><small>存储、备份与隐私</small></span></a><a href="/agent"><i>←</i><span><b>返回医学问答</b><small>继续当前工作</small></span></a></nav></aside>
       <section className="settings-content" id="model-services">
+        <ModelStatusNotice {...modelStatus} />
         <div className="settings-heading"><div><span>MODEL SERVICES</span><h2>模型服务</h2><p>主页顶部只用于快速切换已配置模型；API Key与连接测试统一在此管理。</p></div><strong className={settings?.providers.some((item) => item.configured) ? 'online' : ''}>{settings?.providers.filter((item) => item.configured).length || 0} / 3 已配置</strong></div>
         {loading ? <div className="settings-loading">正在读取加密配置…</div> : <>
           <section className="settings-usage"><div><span>ACCOUNT USAGE</span><b>本账号累计Token用量</b></div><strong>{usage.total_tokens.toLocaleString()} <small>tokens</small></strong><p>{usage.calls} 次模型生成 · 输入 {usage.input_tokens.toLocaleString()} / 输出 {usage.output_tokens.toLocaleString()}</p></section>

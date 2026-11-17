@@ -21,7 +21,7 @@ class Launcher : Form {
     Label status = new Label();
     Button open = new Button();
     Button retry = new Button();
-    bool headless, closing;
+    bool headless, closing, modelsReady;
     [DllImport("kernel32.dll", CharSet=CharSet.Unicode)] static extern IntPtr CreateJobObject(IntPtr a, string name);
     [DllImport("kernel32.dll")] static extern bool SetInformationJobObject(IntPtr h, int c, ref JobLimits info, uint size);
     [DllImport("kernel32.dll")] static extern bool AssignProcessToJobObject(IntPtr h, IntPtr p);
@@ -94,7 +94,7 @@ class Launcher : Form {
             }
             if(closing) return;
             if(!ready) throw new Exception("等待模型启动超时，请查看日志并重试。");
-            status.Text="服务已就绪 · 五折模型已加载\n本机记录独立保存；AI 问答 API Key 请在设置中配置。";
+            status.Text=modelsReady ? "服务已就绪 · 五折模型已加载\n本机记录独立保存；AI 问答 API Key 请在设置中配置。" : "工作区已启动 · 影像模型暂不可用\n可使用账号、历史记录与问答；请在设置页查看模型状态。";
             open.Enabled=true; if(!headless) Process.Start(Url);
         } catch(Exception ex) {StopServices(); status.Text=ex.Message; retry.Enabled=true;}
     }
@@ -102,7 +102,9 @@ class Launcher : Form {
         try {
             var r=(HttpWebRequest)WebRequest.Create("http://127.0.0.1:18001/api/health"); r.Timeout=1500; r.Proxy=null;
             string body; using(var res=r.GetResponse()) using(var reader=new StreamReader(res.GetResponseStream())) body=reader.ReadToEnd();
-            if(!body.Replace(" ","").Contains("\"models_loaded\":5")) return false;
+            string compact=body.Replace(" ","");
+            if(!compact.Contains("\"models_loaded\":")) return false;
+            modelsReady=compact.Contains("\"models_loaded\":5");
             var f=(HttpWebRequest)WebRequest.Create(Url); f.Timeout=1500; f.Proxy=null; using(var res=f.GetResponse()) return ((HttpWebResponse)res).StatusCode==HttpStatusCode.OK;
         } catch(WebException) {return false;}
     }

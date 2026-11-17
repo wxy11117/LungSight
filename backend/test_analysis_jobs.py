@@ -152,6 +152,30 @@ class QueueTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.queue.retry(old['job_id'], 'owner')
 
+    def test_clear_inputs_requires_owner_and_idle_job_and_preserves_saved_results(self):
+        process = self.queue.processor
+        job = self.submit()
+        with self.assertRaises(KeyError):
+            self.queue.clear_inputs(job['job_id'], 'another-owner')
+        with self.assertRaises(ValueError):
+            self.queue.clear_inputs(job['job_id'], 'owner')
+        def cancel_after_first(*args):
+            result = process(*args)
+            self.queue.cancel(job['job_id'], 'owner')
+            return result
+        self.queue.processor = cancel_after_first
+        self.queue.process_one()
+        before = self.queue.get(job['job_id'], 'owner')
+        after = self.queue.clear_inputs(job['job_id'], 'owner')
+        self.assertEqual(after['results'], before['results'])
+        self.assertEqual(after['series_id'], before['series_id'])
+        self.assertEqual([i['state'] for i in after['items']], ['SUCCEEDED', 'CLEARED', 'CLEARED'])
+        self.assertFalse(any(i['retryable'] for i in after['items']))
+        with self.assertRaises(ValueError):
+            self.queue.retry(job['job_id'], 'owner')
+        with self.queue.connection() as db:
+            self.assertEqual(db.execute('SELECT COUNT(*) FROM analysis_job_items WHERE payload IS NOT NULL').fetchone()[0], 0)
+
 
 if __name__ == '__main__':
     unittest.main()

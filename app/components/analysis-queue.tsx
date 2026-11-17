@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiFetch, responseMessage } from '../auth-client';
+import { confirmUnsavedChanges } from './unsaved-changes';
 
 export type AnalysisJob<Result> = {
   job_id: string; case_name: string; mode: 'image' | 'dicom'; state: string; error: string;
@@ -9,7 +10,7 @@ export type AnalysisJob<Result> = {
   items: { ordinal: number; file_name: string; state: string; stage: string; task_id: string; retryable: boolean; error: string }[];
 };
 export const activeJobStates = new Set(['QUEUED', 'RUNNING', 'CANCELLING']);
-const labels: Record<string, string> = { DELETED: '已删除', QUEUED: '排队中', RUNNING: '处理中', CANCELLING: '正在取消', CANCELLED: '已取消', SUCCEEDED: '已完成', PARTIAL: '部分完成', FAILED: '未完成', INTERRUPTED: '服务中断', READY: '等待处理', WAITING: '等待处理', READING: '读取影像', QUALITY: '质量检查', INFERENCE: '五折推理', ATTENTION: '生成注意力图', SAVING: '保存结果', DONE: '已保存', INVALID: '输入不适用' };
+const labels: Record<string, string> = { CLEARED: '缓存已释放', DELETED: '已删除', QUEUED: '排队中', RUNNING: '处理中', CANCELLING: '正在取消', CANCELLED: '已取消', SUCCEEDED: '已完成', PARTIAL: '部分完成', FAILED: '未完成', INTERRUPTED: '服务中断', READY: '等待处理', WAITING: '等待处理', READING: '读取影像', QUALITY: '质量检查', INFERENCE: '五折推理', ATTENTION: '生成注意力图', SAVING: '保存结果', DONE: '已保存', INVALID: '输入不适用' };
 
 export function useAnalysisQueue<Result>(onUpdate: (job: AnalysisJob<Result>) => void) {
   const [jobs, setJobs] = useState<AnalysisJob<Result>[]>([]);
@@ -59,8 +60,9 @@ export function useAnalysisQueue<Result>(onUpdate: (job: AnalysisJob<Result>) =>
     return () => { controller.abort(); clearTimeout(timer); };
   }, [jobId, jobState, accept]); // Keep polling through transient network errors.
 
-  const action = async (operation: 'cancel' | 'retry') => {
+  const action = async (operation: 'cancel' | 'retry' | 'clear-inputs') => {
     if (!job || acting) return;
+    if (operation === 'clear-inputs' && !window.confirm('释放未完成项的输入缓存后，需要重新选择文件才能分析。已保存的影像结果和报告会保留。确定释放吗？')) return;
     setActing(true); setError('');
     try {
       const response = await apiFetch(`/api/analysis-jobs/${job.job_id}/${operation}`, { method: 'POST' });
@@ -69,7 +71,7 @@ export function useAnalysisQueue<Result>(onUpdate: (job: AnalysisJob<Result>) =>
     } catch (reason) { setError(reason instanceof Error ? reason.message : '任务操作失败'); }
     finally { setActing(false); }
   };
-  return { jobs, job, error, acting, accept, action, clear: () => { interacted.current = true; setSelectedId(''); }, select: (id: string) => { const selected = jobs.find(item => item.job_id === id); if (selected) accept(selected); } };
+  return { jobs, job, error, acting, accept, action, clear: () => { interacted.current = true; setSelectedId(''); }, select: (id: string) => { const selected = jobs.find(item => item.job_id === id); if (selected && id !== selectedId && confirmUnsavedChanges()) accept(selected); } };
 }
 
 export default function AnalysisQueuePanel<Result>({ queue }: { queue: ReturnType<typeof useAnalysisQueue<Result>> }) {
@@ -81,6 +83,7 @@ export default function AnalysisQueuePanel<Result>({ queue }: { queue: ReturnTyp
     {error && <p role="alert">{error}</p>}
     {job && <><div className="job-stage" role="status"><strong>{labels[job.state]}{current ? ` · ${labels[current.stage]} · ${current.file_name}` : ''}</strong><span>{job.completed} / {job.total} 已保存 · {job.failed} 项失败</span></div><progress aria-label="切片处理进度" value={job.completed + job.failed} max={Math.max(1, job.total)} />
       <div className="job-actions">{activeJobStates.has(job.state) ? <button disabled={acting || job.state === 'CANCELLING'} onClick={() => void queue.action('cancel')}>{job.state === 'CANCELLING' ? '等待当前计算阶段结束…' : '取消剩余处理'}</button> : job.state !== 'SUCCEEDED' && (job.items.some(item => item.retryable) || job.error) ? <button disabled={acting} onClick={() => void queue.action('retry')}>{acting ? '正在恢复…' : '继续 / 重试未完成项'}</button> : null}<a href="/cases">查看已保存结果 →</a></div>
+      {!activeJobStates.has(job.state) && job.items.some(item => item.retryable) && <button type="button" disabled={acting} onClick={() => void queue.action('clear-inputs')}>释放未完成项输入缓存</button>}
       {job.error && <p role="alert">{job.error}</p>}<details><summary>逐项进度与失败原因</summary><ul>{job.items.map(item => <li key={item.ordinal}><span>{item.file_name}</span><b>{labels[item.state]}</b><small>{item.error || labels[item.stage]}{item.state === 'FAILED' && !item.retryable ? '（需重新选择文件）' : ''}</small></li>)}</ul></details>
     </>}
   </section>;

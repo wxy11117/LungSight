@@ -1,5 +1,5 @@
 """可复现的白名单分发构建；不拷贝开发者数据库、密钥或病例。"""
-import argparse, hashlib, json, os, shutil, subprocess, sys
+import argparse, hashlib, json, os, re, shutil, subprocess, sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -17,11 +17,14 @@ def main():
     parser.add_argument('--project', type=Path, required=True)
     parser.add_argument('--node', type=Path, required=True)
     parser.add_argument('--python-base', type=Path, required=True)
+    parser.add_argument('--version', default='0.1.0-beta.2')
     parser.add_argument('--resume', action='store_true')
     args=parser.parse_args()
     project=args.project.resolve(); backend=project/'backend'
     # 全新构建目录，绝不递归删除任何已有目录。
-    build=HERE/'build-beta1'
+    if not re.fullmatch(r'[0-9A-Za-z][0-9A-Za-z.-]{0,60}', args.version):
+        raise SystemExit('Invalid release version')
+    build=HERE/('build-'+args.version)
     if build.exists() and not args.resume: raise SystemExit('构建目录已存在，请选择新的版本目录，不覆盖已有包。')
     build.mkdir(exist_ok=True); payload=build/'payload'; payload.mkdir(exist_ok=True)
     appdest=payload/'lung-vision-site'/'backend'
@@ -69,6 +72,7 @@ def main():
             if 'http://127.0.0.1:18001' in updated: replacements+=1
     assert replacements>0
     copy(HERE/'INSTALL_README.txt',payload/'INSTALL_README.txt')
+    copy(project/'documentation'/'COMPETITION_DEMO_GUIDE.md',payload/'DEMO_GUIDE.md')
     licenses=payload/'THIRD_PARTY_NOTICES'; licenses.mkdir(exist_ok=True)
     copy(HERE/'tools'/'NODE_LICENSE.txt',licenses/'NODE_LICENSE.txt')
     for name in ['LICENSE','LICENSE.md','LICENSE.txt']:
@@ -88,7 +92,7 @@ def main():
         assert file.suffix not in {'.sqlite3','.sqlite','.db','.key'}, 'Private data found: '+str(file)
         assert file.name not in {'.env','credential_secret.key'}
         files.append({'path':file.relative_to(payload).as_posix(),'bytes':file.stat().st_size,'sha256':digest(file)})
-    (payload/'BUNDLE_MANIFEST.json').write_text(json.dumps({'version':'0.1.0-beta.1','model_version':manifest['model_version'],'frontend_port':18000,'backend_port':18001,'files':files},ensure_ascii=False,indent=2),encoding='utf-8')
+    (payload/'BUNDLE_MANIFEST.json').write_text(json.dumps({'version':args.version,'model_version':manifest['model_version'],'frontend_port':18000,'backend_port':18001,'files':files},ensure_ascii=False,indent=2),encoding='utf-8')
     print(json.dumps({'payload':str(payload),'files':len(files),'bytes':sum(f['bytes'] for f in files)},ensure_ascii=False),flush=True)
 
 if __name__=='__main__': main()

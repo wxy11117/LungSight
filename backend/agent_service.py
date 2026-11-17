@@ -349,7 +349,11 @@ class OpenAICompatibleChatProvider:
         return ProviderResult(payload, input_tokens, output_tokens, total_tokens)
 
     def check_connection(self) -> None:
-        self.client.models.list()
+        available = self.client.models.list()
+        if not any(item.id == self.model for item in available):
+            # DeepSeek keeps this alias compatible with its current Flash model.
+            if not (self.name == 'deepseek' and self.model == 'deepseek-v4-flash' and any(item.id == 'deepseek-flash' for item in available)):
+                raise ValueError('密钥可连接，但所选模型不在服务商可用列表中，请更换模型。')
 
 
 def create_llm_provider(*, provider: str, api_key: str, model: str) -> LLMProvider:

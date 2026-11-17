@@ -1,10 +1,13 @@
 #ifndef Payload
   #define Payload "payload"
 #endif
+#ifndef AppVersion
+  #define AppVersion "0.1.0-beta.2"
+#endif
 [Setup]
 AppId={{3F30FA64-8C2D-4C9B-A560-32BD9FEF5F81}
 AppName=LungSight
-AppVersion=0.1.0-beta.1
+AppVersion={#AppVersion}
 AppPublisher=QIONX
 DefaultDirName={localappdata}\Programs\LungSight
 DefaultGroupName=LungSight
@@ -13,7 +16,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 OutputDir=releases
-OutputBaseFilename=LungSight-Setup-0.1.0-beta.1-win-x64
+OutputBaseFilename=LungSight-Setup-{#AppVersion}-win-x64
 Compression=lzma2/fast
 SolidCompression=yes
 LZMANumBlockThreads=2

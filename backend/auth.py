@@ -47,8 +47,8 @@ LLM_PROVIDERS = {
     "deepseek": {
         "label": "DeepSeek · 深度求索",
         "base_url": "https://api.deepseek.com",
-        "default_model": "deepseek-v4-flash",
-        "models": ["deepseek-v4-flash", "deepseek-v4-pro"],
+        "default_model": "deepseek-flash",
+        "models": ["deepseek-flash", "deepseek-v4-pro", "deepseek-v4-flash"],
     },
 }
 

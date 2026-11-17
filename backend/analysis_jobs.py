@@ -159,13 +159,26 @@ class AnalysisQueue:
                 raise ValueError('队列已满，请稍后再试。')
             if db.execute("SELECT COUNT(*) FROM analysis_jobs WHERE owner_user_id = ? AND state IN ('QUEUED','RUNNING','CANCELLING')", (owner,)).fetchone()[0] >= 2:
                 raise ValueError('当前账号已有两个任务，请稍后再试。')
-            if not job['error'] and not db.execute("SELECT 1 FROM analysis_job_items WHERE job_id = ? AND state != 'SUCCEEDED' AND payload IS NOT NULL", (job_id,)).fetchone():
+            retained = db.execute("SELECT 1 FROM analysis_job_items WHERE job_id = ? AND state != 'SUCCEEDED' AND payload IS NOT NULL", (job_id,)).fetchone()
+            saved = db.execute("SELECT 1 FROM analysis_job_items WHERE job_id = ? AND state = 'SUCCEEDED'", (job_id,)).fetchone()
+            if not retained and not (job['error'] and saved):
                 raise ValueError('没有可重试的输入，请重新选择文件。')
             # Invalid input without retained normalized pixels needs reselection.
             db.execute("UPDATE analysis_job_items SET state = 'READY', stage = 'WAITING', error = '' WHERE job_id = ? AND state != 'SUCCEEDED' AND payload IS NOT NULL", (job_id,))
             # A finalization failure can be retried even with all slices complete.
             db.execute("UPDATE analysis_jobs SET state = 'QUEUED', cancel_requested = 0, series_id = NULL, error = '', updated_at = ? WHERE job_id = ?", (now(), job_id))
         self.wake.set()
+        return self.get(job_id, owner)
+
+    def clear_inputs(self, job_id, owner):
+        """Release retry pixels without deleting already saved analysis results."""
+        with self.connection() as db:
+            db.execute('BEGIN IMMEDIATE')
+            job = self._owned(db, job_id, owner)
+            if job['state'] in {'QUEUED', 'RUNNING', 'CANCELLING'}:
+                raise ValueError('请先取消任务或等待处理结束，再释放输入缓存。')
+            db.execute("UPDATE analysis_job_items SET payload=NULL, state='CLEARED', stage='CLEARED', error='输入缓存已释放；继续分析需要重新选择文件。' WHERE job_id=? AND payload IS NOT NULL AND state != 'SUCCEEDED'", (job_id,))
+            db.execute("UPDATE analysis_jobs SET error='', updated_at=? WHERE job_id=?", (now(), job_id))
         return self.get(job_id, owner)
 
     def process_one(self):

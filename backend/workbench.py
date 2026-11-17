@@ -128,12 +128,18 @@ class Workbench:
 
         @app.post('/api/analysis-jobs/{job_id}/retry')
         def retry_job(job_id: str, user: dict = Depends(api.require_user)):
+            api.runtime.require_ready()
             return queue_call('retry', job_id, user['user_id'])
+
+        @app.post('/api/analysis-jobs/{job_id}/clear-inputs')
+        def clear_job_inputs(job_id: str, user: dict = Depends(api.require_user)):
+            return queue_call('clear_inputs', job_id, user['user_id'])
 
         @app.post('/api/analysis-jobs', status_code=202)
         async def submit_job(files: list[UploadFile] = File(...), mode: Literal['image', 'dicom'] = Form('image'),
                              case_name: str = Form('未命名影像任务', max_length=120), privacy_acknowledged: bool = Form(False),
                              user: dict = Depends(api.require_user)):
+            api.runtime.require_ready()
             maximum = api.MAX_DICOM_FILES if mode == 'dicom' else api.MAX_SERIES_FILES
             if not 1 <= len(files) <= maximum:
                 raise HTTPException(413, f'请选择1至{maximum}个文件。')

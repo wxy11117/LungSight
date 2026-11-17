@@ -23,7 +23,7 @@ if __name__ == '__main__':
             payload = doc.read_bytes()
             with connect(app.DATABASE_PATH) as connection:
                 _upsert_source(connection, title=payload.decode('utf-8').splitlines()[0].lstrip('# '),
-                    source_type='MODEL_NOTE', version='desktop-0.1.0-beta.1', publication_date=None,
+                    source_type='MODEL_NOTE', version=app.runtime.manifest['model_version'], publication_date=None,
                     authority='LungSight model documentation', scope='研究用途，不用于独立临床诊断',
                     locator='lung-vision-site/docs/' + name, payload=payload,
                     chunks=[(section, None, content) for section, content in _chunk_text(payload.decode('utf-8'))])

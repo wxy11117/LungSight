@@ -49,6 +49,7 @@ class WorkbenchTests(unittest.TestCase):
         })
         self.assertEqual(response.status_code, 201, response.text)
         self.owner = response.json()['user']['user_id']
+        patch.object(api.runtime, 'models', [object()] * 5).start()
         self.predict = patch.object(api.runtime, 'predict', side_effect=prediction).start()
         self.attention = patch.object(api.runtime, 'generate_attention_map', side_effect=lambda image, _: (image.copy(), 1)).start()
         self.queue = api.workbench.queue()
@@ -68,6 +69,25 @@ class WorkbenchTests(unittest.TestCase):
         self.assertEqual(self.predict.call_count, 0, 'submission must not run model inference')
         self.queue.process_one()
         return self.client.get('/api/analysis-jobs/' + response.json()['job_id']).json()
+
+    def test_missing_models_keeps_settings_available_and_refuses_new_inference(self):
+        with patch.object(api.runtime, 'load', side_effect=FileNotFoundError('private/local/path')), patch.object(api.runtime, 'load_error', None):
+            with TestClient(api.app) as lifecycle:
+                health = lifecycle.get('/api/health').json()
+                self.assertFalse(health['model_ready'])
+                self.assertNotIn('private', str(health))
+                self.assertEqual(self.client.get('/api/settings/llm').status_code, 200)
+                response = self.client.post('/api/analysis-jobs', files={'files': ('sample.png', png_bytes(), 'image/png')})
+                self.assertEqual(response.status_code, 503)
+                self.assertEqual(self.client.get('/api/analysis-jobs').json()['items'], [])
+                self.assertEqual(self.predict.call_count, 0)
+
+    def test_invalid_llm_configuration_never_echoes_credential(self):
+        secret = 'sk-synthetic-secret-do-not-echo'
+        response = self.client.put('/api/settings/llm', json={'provider': 'invalid', 'api_key': secret, 'model': { 'bad': secret }})
+        self.assertEqual(response.status_code, 422)
+        self.assertNotIn(secret, response.text)
+        self.assertEqual(response.headers['cache-control'], 'no-store')
 
     def test_queue_persists_real_task_media_and_annotations_round_trip_into_report(self):
         job = self.submit()
