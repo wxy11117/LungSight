@@ -7,6 +7,10 @@ import { apiFetch, responseMessage } from '../auth-client';
 import CaseTable from '../cases/case-table';
 import type { CaseTask } from '../cases/case-actions';
 import { ModelStatusNotice, useModelStatus } from '../components/model-status';
+import WorkspaceAppearanceToggle from '../components/workspace-appearance-toggle';
+import WorkbenchIcon from '../components/workbench-icon';
+import { confirmUnsavedChanges, useUnsavedChanges } from '../components/unsaved-changes';
+import { confirmAction } from '../components/confirmation-dialog';
 
 type ProviderId = 'openai' | 'kimi' | 'deepseek';
 type ProviderSetting = {
@@ -80,13 +84,16 @@ export default function SettingsCenter() {
   };
 
   const selected = useMemo(() => settings?.providers.find((item) => item.id === selectedId), [selectedId, settings]);
-  const chooseProvider = (provider: ProviderSetting) => {
+  const dirty = !!apiKey || !!selected && selected.model !== model;
+  useUnsavedChanges(dirty, !!busy);
+  const chooseProvider = async (provider: ProviderSetting) => {
+    if (busy || provider.id === selectedId || !await confirmUnsavedChanges()) return;
     setSelectedId(provider.id); setModel(provider.model); setApiKey(''); setNotice(''); setError('');
   };
 
   const save = async (event: FormEvent) => {
     event.preventDefault();
-    if (!selected) return;
+    if (!selected || busy) return;
     if (!selected.configured && apiKey.trim().length < 12) { setError(`请输入有效的${providerNames[selectedId]} API Key`); return; }
     setBusy('save'); setNotice(''); setError('');
     try {
@@ -101,7 +108,8 @@ export default function SettingsCenter() {
   };
 
   const testConnection = async () => {
-    if (!selected?.configured) return;
+    if (!selected?.configured || busy) return;
+    if (dirty) { setError('请先保存当前修改，再测试新配置的连接。'); return; }
     setBusy('test'); setNotice(''); setError('');
     try {
       const response = await apiFetch('/api/settings/llm/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: selectedId }) });
@@ -112,7 +120,7 @@ export default function SettingsCenter() {
   };
 
   const removeProvider = async () => {
-    if (!selected?.configured || !window.confirm(`删除${providerNames[selectedId]}的本地API配置？此操作不会删除服务商账户。`)) return;
+    if (!selected?.configured || busy || !await confirmAction({ title: `移除 ${providerNames[selectedId]} 配置？`, description: '仅移除本机保存的服务配置。再次使用时，需要重新输入 API Key。', confirmLabel: '移除配置', destructive: true })) return;
     setBusy('delete'); setNotice(''); setError('');
     try {
       const response = await apiFetch(`/api/settings/llm/${selectedId}`, { method: 'DELETE' });
@@ -124,19 +132,19 @@ export default function SettingsCenter() {
   };
 
   return <main className="settings-shell">
-    <header className="settings-topbar"><a href="/agent" className="review-brand"><span className="brand-mark" /><span><b>LungSight</b><small>SETTINGS CENTER</small></span></a><BackToAgent /></header>
+    <header className="settings-topbar"><a href="/agent" className="review-brand"><span className="brand-mark" /><span><b>LungSight</b><small>SETTINGS CENTER</small></span></a><div><BackToAgent /><WorkspaceAppearanceToggle /></div></header>
     <div className="settings-layout">
       <aside className="settings-nav"><span>SETTINGS</span><h1>设置中心</h1><nav><a className="active" href="#model-services"><i>AI</i><span><b>模型服务</b><small>API、模型与连接状态</small></span></a><button type="button" onClick={showArchive}><i>AR</i><span><b>查看归档</b><small>恢复或永久删除病例</small></span></button><a href="#local-data"><i>DB</i><span><b>本地数据</b><small>存储、备份与隐私</small></span></a><a href="/agent"><i>←</i><span><b>返回医学问答</b><small>继续当前工作</small></span></a></nav></aside>
       <section className="settings-content" id="model-services">
         <ModelStatusNotice {...modelStatus} />
-        <div className="settings-heading"><div><span>MODEL SERVICES</span><h2>模型服务</h2><p>主页顶部只用于快速切换已配置模型；API Key与连接测试统一在此管理。</p></div><strong className={settings?.providers.some((item) => item.configured) ? 'online' : ''}>{settings?.providers.filter((item) => item.configured).length || 0} / 3 已配置</strong></div>
+        <div className="settings-heading"><div><span>MODEL SERVICES</span><h2>连接你的 AI 助手</h2><p>选择服务商，保存密钥，即可开始带有资料依据的医学问答。</p></div><strong className={settings?.providers.some((item) => item.configured) ? 'online' : ''}>{settings?.providers.filter((item) => item.configured).length || 0} / 3 已配置</strong></div>
         {loading ? <div className="settings-loading">正在读取加密配置…</div> : <>
           <section className="settings-usage"><div><span>ACCOUNT USAGE</span><b>本账号累计Token用量</b></div><strong>{usage.total_tokens.toLocaleString()} <small>tokens</small></strong><p>{usage.calls} 次模型生成 · 输入 {usage.input_tokens.toLocaleString()} / 输出 {usage.output_tokens.toLocaleString()}</p></section>
-          <div className="settings-provider-grid">{settings?.providers.map((provider) => <button type="button" key={provider.id} className={`${provider.id === selectedId ? 'selected' : ''} ${provider.id === settings.selected_provider ? 'active' : ''}`} onClick={() => chooseProvider(provider)}><i>{providerCodes[provider.id]}</i><span><b>{providerNames[provider.id]}</b><small>{provider.configured ? `${provider.masked_key} · ${provider.status === 'VERIFIED' ? '连接已验证' : '已加密保存'}` : '尚未配置API Key'}</small></span>{provider.id === settings.selected_provider && <em>当前启用</em>}</button>)}</div>
+          <div className="settings-provider-grid" role="group" aria-label="选择模型服务商">{settings?.providers.map((provider) => <button type="button" key={provider.id} disabled={!!busy} aria-pressed={provider.id === selectedId} className={`${provider.id === selectedId ? 'selected' : ''} ${provider.id === settings.selected_provider ? 'active' : ''}`} onClick={() => void chooseProvider(provider)}><i className={`provider-symbol ${provider.id}`}>{providerCodes[provider.id]}</i><span><b>{providerNames[provider.id]}</b><small>{provider.configured ? provider.status === 'VERIFIED' ? '连接已验证' : '已加密保存' : '尚未连接'}</small></span>{provider.id === settings.selected_provider && provider.configured && <em>当前启用</em>}{provider.id === selectedId && <span className="provider-selected-mark"><WorkbenchIcon name="check" size={14}/></span>}</button>)}</div>
           <form className="settings-provider-form" onSubmit={save}>
             <header><div><span>PROVIDER CONFIGURATION</span><h3>{providerNames[selectedId]}</h3></div><strong>{selected?.configured ? '已配置' : '待配置'}</strong></header>
-            <label><span>API Key</span><input type="password" autoComplete="off" value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder={selected?.masked_key || `输入${providerNames[selectedId]} API Key`} /><small>{selected?.configured ? '留空表示保留当前密钥；输入新Key将替换原配置。' : '密钥仅在本机后端加密保存，不写入浏览器存储。'}</small></label>
-            <label><span>模型</span><select value={model} onChange={(event) => setModel(event.target.value)}>{selected?.models.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+            <label><span>API Key <WorkbenchIcon name="shield" size={14}/></span><input type="password" autoComplete="off" spellCheck={false} disabled={!!busy} value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder={selected?.masked_key || `输入${providerNames[selectedId]} API Key`} /><small>{selected?.configured ? '留空保留已保存密钥，填写新密钥即可替换。' : '密钥在本机加密保存，不写入浏览器存储。'}</small></label>
+            <label><span>模型</span><select value={model} disabled={!!busy} onChange={(event) => setModel(event.target.value)}>{selected?.models.map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
             <div className="settings-form-actions"><button disabled={!!busy}>{busy === 'save' ? '正在保存…' : selected?.configured && !apiKey ? '切换并启用' : '保存并启用'}</button><button type="button" disabled={!selected?.configured || !!busy} onClick={() => void testConnection()}>{busy === 'test' ? '正在测试…' : '测试连接'}</button><button type="button" className="danger" disabled={!selected?.configured || !!busy} onClick={() => void removeProvider()}>{busy === 'delete' ? '正在删除…' : '删除配置'}</button></div>
             {notice && <p className="settings-notice" role="status">✓ {notice}</p>}{error && <p className="settings-error" role="alert">{error}</p>}{selected?.last_error && <p className="settings-error">最近错误：{selected.last_error}</p>}
           </form>

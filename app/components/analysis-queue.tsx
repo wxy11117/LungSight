@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiFetch, responseMessage } from '../auth-client';
 import { confirmUnsavedChanges } from './unsaved-changes';
+import { confirmAction } from './confirmation-dialog';
+import WorkbenchIcon from './workbench-icon';
 
 export type AnalysisJob<Result> = {
   job_id: string; case_name: string; mode: 'image' | 'dicom'; state: string; error: string;
@@ -62,7 +64,7 @@ export function useAnalysisQueue<Result>(onUpdate: (job: AnalysisJob<Result>) =>
 
   const action = async (operation: 'cancel' | 'retry' | 'clear-inputs') => {
     if (!job || acting) return;
-    if (operation === 'clear-inputs' && !window.confirm('释放未完成项的输入缓存后，需要重新选择文件才能分析。已保存的影像结果和报告会保留。确定释放吗？')) return;
+    if (operation === 'clear-inputs' && !await confirmAction({ title: '释放未完成项的输入缓存？', description: '已保存的影像和报告会保留。释放后，需要重新选择文件才能分析这些未完成项。', confirmLabel: '释放缓存', destructive: true })) return;
     setActing(true); setError('');
     try {
       const response = await apiFetch(`/api/analysis-jobs/${job.job_id}/${operation}`, { method: 'POST' });
@@ -71,7 +73,7 @@ export function useAnalysisQueue<Result>(onUpdate: (job: AnalysisJob<Result>) =>
     } catch (reason) { setError(reason instanceof Error ? reason.message : '任务操作失败'); }
     finally { setActing(false); }
   };
-  return { jobs, job, error, acting, accept, action, clear: () => { interacted.current = true; setSelectedId(''); }, select: (id: string) => { const selected = jobs.find(item => item.job_id === id); if (selected && id !== selectedId && confirmUnsavedChanges()) accept(selected); } };
+  return { jobs, job, error, acting, accept, action, clear: () => { interacted.current = true; setSelectedId(''); }, select: async (id: string) => { const selected = jobs.find(item => item.job_id === id); if (selected && id !== selectedId && await confirmUnsavedChanges()) accept(selected); } };
 }
 
 export default function AnalysisQueuePanel<Result>({ queue }: { queue: ReturnType<typeof useAnalysisQueue<Result>> }) {
@@ -79,9 +81,9 @@ export default function AnalysisQueuePanel<Result>({ queue }: { queue: ReturnTyp
   if (!jobs.length && !error) return null;
   const current = job?.items.find(item => item.state === 'RUNNING');
   return <section className="job-panel" aria-label="后台分析任务">
-    <header><div><h2>后台分析任务</h2><p>刷新页面可恢复进度；成功切片保留，重试只处理未完成项。</p></div><select aria-label="选择后台任务" value={job?.job_id || ''} disabled={acting} onChange={event => queue.select(event.target.value)}><option value="" disabled>选择任务</option>{jobs.map(item => <option key={item.job_id} value={item.job_id}>{item.case_name} · {labels[item.state] || item.state}</option>)}</select></header>
+    <header><span className={`job-symbol ${job && activeJobStates.has(job.state) ? 'is-active' : ''}`}><WorkbenchIcon name={job?.state === 'SUCCEEDED' ? 'check' : 'layers'} size={21}/></span><div><h2>后台分析任务 <small>{jobs.length}</small></h2><p>进度自动保留，离开页面后仍可继续处理。</p></div><select aria-label="选择后台任务" value={job?.job_id || ''} disabled={acting} onChange={event => void queue.select(event.target.value)}><option value="" disabled>查看最近的任务</option>{jobs.map(item => <option key={item.job_id} value={item.job_id}>{item.case_name} · {labels[item.state] || item.state}</option>)}</select></header>
     {error && <p role="alert">{error}</p>}
-    {job && <><div className="job-stage" role="status"><strong>{labels[job.state]}{current ? ` · ${labels[current.stage]} · ${current.file_name}` : ''}</strong><span>{job.completed} / {job.total} 已保存 · {job.failed} 项失败</span></div><progress aria-label="切片处理进度" value={job.completed + job.failed} max={Math.max(1, job.total)} />
+    {job && <><div className="job-stage" role="status"><strong><i className={`job-state-dot ${activeJobStates.has(job.state) ? 'is-active' : ''}`}/>{labels[job.state]}{current ? ` · ${labels[current.stage]} · ${current.file_name}` : ''}</strong><span><b>{job.completed}</b> / {job.total} 已保存{job.failed > 0 ? ` · ${job.failed} 项失败` : ''}</span></div><progress aria-label="切片处理进度" value={job.completed + job.failed} max={Math.max(1, job.total)} />
       <div className="job-actions">{activeJobStates.has(job.state) ? <button disabled={acting || job.state === 'CANCELLING'} onClick={() => void queue.action('cancel')}>{job.state === 'CANCELLING' ? '等待当前计算阶段结束…' : '取消剩余处理'}</button> : job.state !== 'SUCCEEDED' && (job.items.some(item => item.retryable) || job.error) ? <button disabled={acting} onClick={() => void queue.action('retry')}>{acting ? '正在恢复…' : '继续 / 重试未完成项'}</button> : null}<a href="/cases">查看已保存结果 →</a></div>
       {!activeJobStates.has(job.state) && job.items.some(item => item.retryable) && <button type="button" disabled={acting} onClick={() => void queue.action('clear-inputs')}>释放未完成项输入缓存</button>}
       {job.error && <p role="alert">{job.error}</p>}<details><summary>逐项进度与失败原因</summary><ul>{job.items.map(item => <li key={item.ordinal}><span>{item.file_name}</span><b>{labels[item.state]}</b><small>{item.error || labels[item.stage]}{item.state === 'FAILED' && !item.retryable ? '（需重新选择文件）' : ''}</small></li>)}</ul></details>

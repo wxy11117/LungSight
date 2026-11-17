@@ -17,7 +17,7 @@ def main():
     parser.add_argument('--project', type=Path, required=True)
     parser.add_argument('--node', type=Path, required=True)
     parser.add_argument('--python-base', type=Path, required=True)
-    parser.add_argument('--version', default='0.1.0-beta.2')
+    parser.add_argument('--version', default='0.1.0-beta.3')
     parser.add_argument('--resume', action='store_true')
     args=parser.parse_args()
     project=args.project.resolve(); backend=project/'backend'

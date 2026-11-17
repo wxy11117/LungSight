@@ -5,6 +5,7 @@ import BackToAgent from '../back-to-agent';
 import { apiFetch, responseMessage } from '../auth-client';
 import CaseTable from './case-table';
 import type { CaseTask } from './case-actions';
+import WorkspaceAppearanceToggle from '../components/workspace-appearance-toggle';
 
 type Counts = { total: number; waiting: number; reviewed: number; flagged: number; urgent: number; archived: number };
 
@@ -34,7 +35,7 @@ export default function CaseLibrary() {
   }), [items, query, status]);
 
   return <main className="case-library-shell">
-    <header className="settings-topbar"><a href="/agent" className="review-brand"><span className="brand-mark" /><span><b>LungSight</b><small>CASE LIBRARY</small></span></a><BackToAgent /></header>
+    <header className="settings-topbar"><a href="/agent" className="review-brand"><span className="brand-mark" /><span><b>LungSight</b><small>CASE LIBRARY</small></span></a><div><BackToAgent /><WorkspaceAppearanceToggle /></div></header>
     <section className="case-library-content">
       <div className="case-library-heading"><div><span>CLINICAL WORKSPACE</span><h1>病例库</h1><p>集中检索CT分析任务、复核状态和结构化报告。模型输出不等于临床诊断。</p></div><a href="/analysis">＋ 新建CT分析</a></div>
       <div className="case-stats"><article><span>全部病例</span><b>{counts.total}</b></article><article><span>等待复核</span><b>{counts.waiting}</b></article><article><span>已经复核</span><b>{counts.reviewed}</b></article><article><span>质控提示</span><b>{counts.flagged}</b></article></div>

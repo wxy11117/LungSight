@@ -4,6 +4,8 @@ import './globals.css';
 import './workspace-theme.css';
 import './case-management.css';
 import './workbench.css';
+import './workspace-polish.css';
+import ConfirmationDialog from './components/confirmation-dialog';
 import AppearanceProvider from './appearance-provider';
 import { appearanceBootstrap } from './appearance';
 
@@ -48,6 +50,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AppearanceProvider>{children}</AppearanceProvider>
+        <ConfirmationDialog />
       </body>
     </html>
   );

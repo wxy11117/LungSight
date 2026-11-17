@@ -6,6 +6,8 @@ import { confirmUnsavedChanges } from '../components/unsaved-changes';
 import CaseReviewForm from '../components/case-review-form';
 import BackToAgent from '../back-to-agent';
 import { apiBaseUrl, apiFetch, responseMessage } from '../auth-client';
+import WorkbenchIcon from '../components/workbench-icon';
+import WorkspaceAppearanceToggle from '../components/workspace-appearance-toggle';
 
 type Detail = {
   task_id: string; created_at: string; updated_at: string; status: string;
@@ -29,7 +31,7 @@ export default function CaseWorkspace() {
   const [audit, setAudit] = useState<Audit[]>([]);
   const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [tab, setTab] = useState<'overview' | 'evidence' | 'review' | 'audit'>('overview');
-  const changeTab = (next: typeof tab) => { if (next !== tab && confirmUnsavedChanges()) setTab(next); };
+  const changeTab = async (next: typeof tab) => { if (next !== tab && await confirmUnsavedChanges()) setTab(next); };
   const [series, setSeries] = useState<SeriesContext>({ series_id: null, items: [] });
   const selected = useRef('');
   const [asking, setAsking] = useState(false);
@@ -61,8 +63,8 @@ export default function CaseWorkspace() {
   useEffect(() => { const id = new URLSearchParams(window.location.search).get('task') || ''; const timer = window.setTimeout(() => { selected.current = id; setTaskId(id); void load(id); }, 0); return () => window.clearTimeout(timer); }, [load]);
 
 
-  const selectTask = (id: string) => {
-    if (!id || id === selected.current || !confirmUnsavedChanges()) return;
+  const selectTask = async (id: string) => {
+    if (!id || id === selected.current || !await confirmUnsavedChanges()) return;
     selected.current = id; setTaskId(id); setDetail(null); setAudit([]); setEvidence([]); setAnswer(''); setAnswerError(''); setAsking(false);
     window.history.replaceState(null, '', `/case?task=${encodeURIComponent(id)}`);
     void load(id);
@@ -81,15 +83,15 @@ export default function CaseWorkspace() {
   const currentIndex = Math.max(0, series.items.findIndex(item => item.task_id === taskId));
 
   return <main className="case-workspace-shell">
-    <header className="settings-topbar"><a href="/agent" className="review-brand"><span className="brand-mark" /><span><b>LungSight</b><small>CASE WORKSPACE</small></span></a><div><a href="/cases" className="case-header-link">病例库</a><BackToAgent /></div></header>
+    <header className="settings-topbar"><a href="/agent" className="review-brand"><span className="brand-mark" /><span><b>LungSight</b><small>CASE WORKSPACE</small></span></a><div><a href="/cases" className="case-header-link"><WorkbenchIcon name="folder" size={16}/>病例库</a><BackToAgent /><WorkspaceAppearanceToggle /></div></header>
     {error && <section className="case-workspace-error"><h1>无法打开病例工作区</h1><p>{error}</p><a href="/cases">返回病例库</a></section>}
-    {!error && !detail && <section className="case-workspace-loading">正在加载病例、证据与审计记录…</section>}
+    {!error && !detail && <section className="case-workspace-loading" role="status"><WorkbenchIcon name="refresh" className="wb-spin" size={24}/><p>正在加载病例、证据与审计记录…</p><div className="wb-skeleton-lines"><i/><i/><i/></div></section>}
     {detail && <>
-      <section className="case-workspace-heading"><div><span>CASE · {detail.status}</span><h1>{detail.task_id}</h1><p>{detail.input.file_name} · {detail.input.image_size.join(' × ')} · {new Date(detail.created_at).toLocaleString('zh-CN')}</p></div><div><a href={`/agent?task=${encodeURIComponent(taskId)}`}>打开CT综合对话</a><a href={`${apiBaseUrl}/api/tasks/${encodeURIComponent(taskId)}/report`}>下载结构化报告</a></div></section>
+      <section className="case-workspace-heading"><div><span>CASE WORKSPACE <i>{detail.review ? '已完成复核' : '等待人工复核'}</i></span><h1>{detail.input.file_name}</h1><p><code>{detail.task_id}</code> · {detail.input.image_size.join(' × ')} · {new Date(detail.created_at).toLocaleString('zh-CN')}</p></div><div><a href={`/agent?task=${encodeURIComponent(taskId)}`}><WorkbenchIcon name="spark" size={17}/>打开CT综合对话</a><a href={`${apiBaseUrl}/api/tasks/${encodeURIComponent(taskId)}/report`}><WorkbenchIcon name="save" size={17}/>导出报告</a></div></section>
       <section className="case-context-bar"><span>{detail.review ? '下一步：查看依据并导出报告' : '下一步：查看影像与质量提示，填写本切片复核意见'}</span>{series.items.length > 1 && <select aria-label="选择病例内切片" value={taskId} onChange={event => selectTask(event.target.value)}>{series.items.map((item,index) => <option key={item.task_id} value={item.task_id}>{index + 1}. {item.file_name}</option>)}</select>}</section>
-      <section className="case-quick-actions"><span>围绕当前切片提问</span><button disabled={asking} onClick={() => void ask('请解释当前CT模型输出的可靠性、拒判状态和需要人工复核的事项，不做诊断。')}>解释复核重点</button><button disabled={asking} onClick={() => void ask('请根据当前CT结构化质控记录，解释影像质量提示与当前分析的局限。')}>解释质量提示</button><label><input type="checkbox" checked={includeInReport} onChange={event => setIncludeInReport(event.target.checked)} /> 本次问答附入报告</label></section>
-      {(asking || answer || answerError) && <section className="case-quick-answer" aria-live="polite">{asking ? <p>正在检索资料、生成解释并核验引用…</p> : <p>{answer}</p>}{answerError && <p role="alert">{answerError} <a href="/settings">打开服务设置</a></p>}{answer && <button onClick={() => changeTab('evidence')}>展开关联证据</button>}</section>}
-      <nav className="case-workspace-tabs" aria-label="病例工作区栏目"><button className={tab === 'overview' ? 'active' : ''} onClick={() => changeTab('overview')}>影像与分析</button><button className={tab === 'evidence' ? 'active' : ''} onClick={() => changeTab('evidence')}>AI解释与证据 <i>{evidence.length}</i></button><button className={tab === 'review' ? 'active' : ''} onClick={() => changeTab('review')}>医生复核</button><button className={tab === 'audit' ? 'active' : ''} onClick={() => changeTab('audit')}>审计记录 <i>{audit.length}</i></button></nav>
+      <section className="case-quick-actions"><span><WorkbenchIcon name="spark" size={18}/><b>围绕当前影像提问</b><small>结合本地资料，解释输出与局限</small></span><button disabled={asking} onClick={() => void ask('请解释当前CT模型输出的可靠性、拒判状态和需要人工复核的事项，不做诊断。')}>解释复核重点 <WorkbenchIcon name="chevron" size={14}/></button><button disabled={asking} onClick={() => void ask('请根据当前CT结构化质控记录，解释影像质量提示与当前分析的局限。')}>解释质量提示 <WorkbenchIcon name="chevron" size={14}/></button><label><input type="checkbox" checked={includeInReport} onChange={event => setIncludeInReport(event.target.checked)} /> 本次问答附入报告</label></section>
+      {(asking || answer || answerError) && <section className="case-quick-answer" aria-live="polite" aria-busy={asking}>{asking ? <><div className="wb-answer-loading"><WorkbenchIcon name="refresh" className="wb-spin"/><span>正在检索资料、生成解释并核验引用…<small>你可以继续查看当前影像</small></span></div><div className="wb-skeleton-lines"><i/><i/><i/></div></> : <p>{answer}</p>}{answerError && <p role="alert">{answerError} <a href="/settings">打开服务设置</a></p>}{answer && <button onClick={() => void changeTab('evidence')}>展开关联证据 <WorkbenchIcon name="chevron" size={15}/></button>}</section>}
+      <nav className="case-workspace-tabs" aria-label="病例工作区栏目"><button aria-pressed={tab === 'overview'} className={tab === 'overview' ? 'active' : ''} onClick={() => changeTab('overview')}>影像与分析</button><button aria-pressed={tab === 'evidence'} className={tab === 'evidence' ? 'active' : ''} onClick={() => changeTab('evidence')}>AI解释与证据 <i>{evidence.length}</i></button><button aria-pressed={tab === 'review'} className={tab === 'review' ? 'active' : ''} onClick={() => changeTab('review')}>医生复核</button><button aria-pressed={tab === 'audit'} className={tab === 'audit' ? 'active' : ''} onClick={() => changeTab('audit')}>审计记录 <i>{audit.length}</i></button></nav>
       {tab === 'overview' && <section className="case-overview-grid">
         <article className="case-image-card"><ImageViewer src={`${apiBaseUrl}/api/tasks/${encodeURIComponent(taskId)}/image`} attentionSrc={detail.attention.available ? `${apiBaseUrl}/api/tasks/${encodeURIComponent(taskId)}/attention` : undefined} taskId={taskId} title={detail.input.file_name} sliceIndex={currentIndex} sliceCount={Math.max(1, series.items.length)} onSliceChange={index => { const next = series.items[index]; if (next) selectTask(next.task_id); }} /></article>
         <article className="case-model-card"><span>MODEL OUTPUT</span><div className="case-model-top"><h2>{detail.prediction.top_class_cn}</h2><strong>{(detail.prediction.probabilities[detail.prediction.top_class] * 100).toFixed(1)}%</strong></div><p>此数值为内部四分类模型概率，不是患癌概率，也不等于病理诊断。</p><div className="case-probabilities">{Object.entries(detail.prediction.probabilities).map(([key, value]) => <div key={key}><span>{classNames[key] || key}</span><i><em style={{ width: `${value * 100}%` }} /></i><b>{(value * 100).toFixed(1)}%</b></div>)}</div><dl><div><dt>五折一致性</dt><dd>{detail.reliability.fold_agreement}</dd></div><div><dt>可靠性</dt><dd>{detail.reliability.level}</dd></div><div><dt>质控</dt><dd>{detail.quality_control.status}</dd></div><div><dt>推理耗时</dt><dd>{detail.model.inference_ms} ms</dd></div></dl><div className="workbench-notice">{[...detail.quality_control.warnings, ...detail.reliability.warnings].join("；") || "当前未触发工程质量提示，仍需人工核对。"}</div><CaseReviewForm key={taskId} taskId={taskId} review={detail.review} onSaved={() => { if (selected.current === taskId) void load(taskId); }} /></article>

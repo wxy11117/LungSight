@@ -7,6 +7,8 @@ import AnalysisQueuePanel, { activeJobStates, useAnalysisQueue } from '../compon
 import { apiBaseUrl, responseMessage } from '../auth-client';
 import { ModelStatusNotice, useModelStatus } from '../components/model-status';
 import { confirmUnsavedChanges } from '../components/unsaved-changes';
+import WorkbenchIcon from '../components/workbench-icon';
+import WorkspaceAppearanceToggle from '../components/workspace-appearance-toggle';
 
 const samples = [
   { key: 'adeno', label: '腺癌示例', image: '/ct-adeno.png' },
@@ -110,6 +112,8 @@ export default function CtAnalysisWorkspace() {
   const [uploadMode, setUploadMode] = useState<'image' | 'dicom'>('image');
   const [dicomAcknowledged, setDicomAcknowledged] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
+  const [dragging, setDragging] = useState(false);
+  const dragDepth = useRef(0);
   const [caseName, setCaseName] = useState('');
   const [previewUrl, setPreviewUrl] = useState('');
   const [results, setResults] = useState<AnalysisResult[]>([]);
@@ -147,9 +151,14 @@ export default function CtAnalysisWorkspace() {
     ? `${apiBaseUrl}/api/tasks/${encodeURIComponent(result.task_id)}/image`
     : previewUrl || (uploadMode === 'image' ? samples[sampleIndex].image : '');
 
-  const selectFiles = (list: FileList | null, mode: 'image' | 'dicom') => {
+  const selectFiles = async (list: FileList | File[] | null, mode: 'image' | 'dicom') => {
     const selected = list ? Array.from(list) : [];
-    if (!selected.length || !confirmUnsavedChanges()) return;
+    if (!selected.length || running) return;
+    if (selected.length > (mode === 'dicom' ? 512 : 64)) { setError(mode === 'dicom' ? '一批最多选择 512 个 DICOM 文件。' : '一批最多选择 64 张图片，请分批处理。'); return; }
+    if (selected.some(file => file.size > 20 * 1024 * 1024)) { setError('有文件超过 20 MB，请缩小文件或分批选择。'); return; }
+    if (mode === 'image' && selected.some(file => !/\.(png|jpe?g|bmp|tiff?)$/i.test(file.name))) { setError('请选择 PNG、JPG、BMP 或 TIFF 图片；DICOM 请使用序列导入。'); return; }
+    if (mode === 'dicom' && selected.reduce((total, file) => total + file.size, 0) > 256 * 1024 * 1024) { setError('DICOM 文件总计超过 256 MB，请分批导入。'); return; }
+    if (!await confirmUnsavedChanges()) return;
     selectionRevision.current += 1; lastSeries.current = ''; queue.clear();
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setUploadMode(mode);
@@ -158,8 +167,8 @@ export default function CtAnalysisWorkspace() {
     setResults([]); setSeriesResult(null); setActiveResult(0);  setError('');
   };
 
-  const changeUploadMode = (mode: 'image' | 'dicom') => {
-    if (!confirmUnsavedChanges()) return;
+  const changeUploadMode = async (mode: 'image' | 'dicom') => {
+    if (mode === uploadMode || !await confirmUnsavedChanges()) return;
     selectionRevision.current += 1; lastSeries.current = ''; queue.clear();
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setUploadMode(mode); setFiles([]); setPreviewUrl(''); setResults([]); setSeriesResult(null);
@@ -167,15 +176,15 @@ export default function CtAnalysisWorkspace() {
 
   };
 
-  const selectSample = (index: number) => {
-    if (!confirmUnsavedChanges()) return;
+  const selectSample = async (index: number) => {
+    if (!await confirmUnsavedChanges()) return;
     selectionRevision.current += 1; lastSeries.current = ''; queue.clear();
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setSampleIndex(index); setUploadMode('image'); setFiles([]); setCaseName(''); setPreviewUrl(''); setResults([]); setSeriesResult(null); setActiveResult(0);  setError(''); setDicomAcknowledged(false);
   };
 
   const openStoredSeries = async (seriesId: string, keepSlice = false) => {
-    if (!keepSlice && !confirmUnsavedChanges()) return;
+    if (!keepSlice && !await confirmUnsavedChanges()) return;
     const revision = ++selectionRevision.current;
     if (!keepSlice) { queue.clear(); lastSeries.current = ''; }
     setHistoryLoading(true); setError('');
@@ -214,7 +223,7 @@ export default function CtAnalysisWorkspace() {
     } else if (!job.series_id) { setSeriesResult(null); lastSeries.current = ''; }
   });
   const runAnalysis = async () => {
-    if (running || !modelStatus.status?.model_ready || !confirmUnsavedChanges()) return;
+    if (running || !modelStatus.status?.model_ready || !await confirmUnsavedChanges()) return;
     selectionRevision.current += 1; lastSeries.current = ''; queue.clear();
     setRunning(true); setError(''); setResults([]); setSeriesResult(null); setActiveResult(0);
     try {
@@ -261,23 +270,32 @@ export default function CtAnalysisWorkspace() {
   return <main className="analysis-shell">
     <header className="rag-topbar analysis-topbar">
       <a href="/agent" className="review-brand"><span className="brand-mark" /><span><b>LungSight</b><small>CT ANALYSIS WORKSPACE</small></span></a>
-      <nav><BackToAgent /></nav>
+      <nav><BackToAgent /><WorkspaceAppearanceToggle /></nav>
     </header>
 
-    <section className="analysis-heading"><div><span>LOCAL FIVE-FOLD RESEARCH INFERENCE</span><h1>肺部CT影像分析</h1><p>当前模型延续最初的五折ResNet18四分类架构，但权重为审计后重新训练的研究版本。输出只表示闭集内部排序，不是癌细胞形态识别、病理诊断或患癌概率。</p></div></section>
-    <ModelStatusNotice {...modelStatus} />
+    <section className="analysis-heading"><div className="analysis-heading-copy"><span>IMAGE WORKSPACE <i>研究工作台</i></span><h1>肺部 CT 分析工作台</h1><p>从影像导入到人工复核，在同一工作区查看结果、记录关注点与追溯依据。</p></div><ModelStatusNotice {...modelStatus} compact /></section>
+    <ol className="analysis-workflow" aria-label="影像分析流程"><li className={!result && !running ? 'current' : 'complete'}><span>{result || running ? <WorkbenchIcon name="check" size={15}/> : '01'}</span><div><b>选择影像</b><small>上传文件或体验示例</small></div></li><li className={running ? 'current' : result ? 'complete' : ''}><span>{result ? <WorkbenchIcon name="check" size={15}/> : '02'}</span><div><b>分析与查看</b><small>模型输出与关注区域</small></div></li><li className={result ? 'current' : ''}><span>03</span><div><b>复核与导出</b><small>人工记录和结构化报告</small></div></li><li className="workflow-privacy"><WorkbenchIcon name="shield" size={16}/><span>影像仅在本机处理</span></li></ol>
 
     <AnalysisQueuePanel queue={queue} />
     <section className="analysis-workspace">
       <aside className="analysis-intake">
-        <div className="analysis-section-title"><span>01 · IMAGE INTAKE</span><h2>选择待分析影像</h2></div>
-        <div className="analysis-upload-tabs"><button className={uploadMode === 'image' ? 'active' : ''} disabled={running} onClick={() => changeUploadMode('image')}>普通图片</button><button className={uploadMode === 'dicom' ? 'active' : ''} disabled={running} onClick={() => changeUploadMode('dicom')}>DICOM序列</button></div>
-        {uploadMode === 'image' ? <label className="analysis-upload"><input aria-label="上传肺部CT影像" disabled={running} type="file" multiple accept=".png,.jpg,.jpeg,.bmp,.tif,.tiff,image/png,image/jpeg,image/bmp,image/tiff" onChange={(event) => selectFiles(event.target.files, 'image')} /><i>＋</i><strong>上传或批量选择CT图片</strong><small>PNG / JPG / BMP / TIFF · 单张20MB以内</small></label> : <label className="analysis-upload analysis-upload-dicom"><input aria-label="上传DICOM序列" disabled={running} type="file" multiple accept=".dcm,application/dicom" onChange={(event) => selectFiles(event.target.files, 'dicom')} /><i>DCM</i><strong>选择同一个CT序列</strong><small>单帧CT DICOM · 最多512个 · 总计256MB</small></label>}
+        <div className="analysis-section-title"><span>INPUT</span><h2>选择待分析影像</h2></div>
+        <div className="analysis-upload-tabs" role="group" aria-label="输入类型"><button className={uploadMode === 'image' ? 'active' : ''} aria-pressed={uploadMode === 'image'} disabled={running} onClick={() => void changeUploadMode('image')}>普通图片</button><button className={uploadMode === 'dicom' ? 'active' : ''} aria-pressed={uploadMode === 'dicom'} disabled={running} onClick={() => void changeUploadMode('dicom')}>DICOM 序列</button></div>
+        <label className={`analysis-upload ${dragging ? 'is-dragging' : ''} ${running ? 'is-disabled' : ''}`} onDragEnter={event => { event.preventDefault(); dragDepth.current++; if (!running) setDragging(true); }} onDragOver={event => { event.preventDefault(); event.dataTransfer.dropEffect = running ? 'none' : 'copy'; }} onDragLeave={event => { event.preventDefault(); dragDepth.current = Math.max(0, dragDepth.current - 1); if (!dragDepth.current) setDragging(false); }} onDrop={event => {
+          event.preventDefault(); dragDepth.current = 0; setDragging(false);
+          if (running) return;
+          const incoming = Array.from(event.dataTransfer.files);
+          const dicomCount = incoming.filter(file => file.name.toLowerCase().endsWith('.dcm')).length;
+          if (dicomCount && dicomCount !== incoming.length) { setError('请将普通图片与 DICOM 序列分开导入。'); return; }
+          void selectFiles(incoming, dicomCount ? 'dicom' : incoming.every(file => /\.(png|jpe?g|bmp|tiff?)$/i.test(file.name)) ? 'image' : uploadMode);
+        }}><input aria-label={uploadMode === 'image' ? '上传肺部CT影像' : '上传DICOM序列'} disabled={running} type="file" multiple accept={uploadMode === 'image' ? '.png,.jpg,.jpeg,.bmp,.tif,.tiff,image/png,image/jpeg,image/bmp,image/tiff' : '.dcm,application/dicom'} onChange={event => { const selected = Array.from(event.target.files || []); event.target.value = ''; void selectFiles(selected, uploadMode); }} /><i><WorkbenchIcon name="upload" size={24}/></i><strong>{dragging ? '松开鼠标，即可导入' : '拖入影像，或点击选择'}</strong><small>{uploadMode === 'image' ? 'PNG · JPG · BMP · TIFF' : '同一序列的单帧 CT DICOM'}</small><span>{uploadMode === 'image' ? '支持批量导入 · 单张 ≤ 20 MB' : '最多 512 个文件 · 总计 ≤ 256 MB'}</span></label>
         {(files.length > 1 || uploadMode === 'dicom') && <label className="analysis-case-name"><span>病例名称（请勿填写患者身份信息）</span><input value={caseName} maxLength={120} placeholder="例如：匿名病例 001" onChange={(event) => setCaseName(event.target.value)} /></label>}
-        {!!files.length && <div className="analysis-file-list"><span>已选择 {files.length} {uploadMode === 'dicom' ? '个文件' : '张'}</span>{files.slice(0, 12).map((file, index) => <p key={`${file.name}-${index}`}><b>{String(index + 1).padStart(2, '0')}</b><span>{uploadMode === 'dicom' ? `DICOM文件 ${String(index + 1).padStart(4, '0')}` : file.name}</span><small>{(file.size / 1024 / 1024).toFixed(2)} MB</small></p>)}{files.length > 12 && <small className="analysis-file-more">其余 {files.length - 12} 个文件已选择</small>}</div>}
+        {!!files.length && <div className="analysis-file-list"><header><span>已选择 {files.length} 个文件</span><button type="button" disabled={running} onClick={() => void selectSample(sampleIndex)}>清空</button></header>{files.slice(0, 5).map((file, index) => <p key={`${file.name}-${index}`}><b>{String(index + 1).padStart(2, '0')}</b><span>{uploadMode === 'dicom' ? `DICOM文件 ${String(index + 1).padStart(4, '0')}` : file.name}</span><small>{(file.size / 1024 / 1024).toFixed(2)} MB</small></p>)}{files.length > 5 && <small className="analysis-file-more">另有 {files.length - 5} 个文件已选择</small>}</div>}
         {uploadMode === 'dicom' && <label className="analysis-dicom-consent"><input type="checkbox" checked={dicomAcknowledged} onChange={(event) => setDicomAcknowledged(event.target.checked)} /><span>我确认数据已获授权并仅在本机处理；系统不保存原始DICOM或身份字段值，但像素区域仍需人工隐私复核。</span></label>}
-        {uploadMode === 'image' && <div className="analysis-samples"><span>或使用内置示例</span>{samples.map((sample, index) => <button key={sample.key} className={!files.length && sampleIndex === index ? 'active' : ''} disabled={running} onClick={() => selectSample(index)}><i>{String(index + 1).padStart(2, '0')}</i><span>{sample.label}</span></button>)}</div>}
-        <button className="analysis-run" disabled={running || !modelStatus.status?.model_ready} onClick={() => void runAnalysis()}>{running ? `分析中 ${queue.job?.completed || 0}/${queue.job?.total || files.length || 1}` : '运行本地五折分析 →'}</button>
+        {uploadMode === 'image' && <div className="analysis-samples"><span>快速体验 · 内置示例</span>{samples.map((sample, index) => <button key={sample.key} className={!files.length && sampleIndex === index ? 'active' : ''} aria-pressed={!files.length && sampleIndex === index} disabled={running} onClick={() => void selectSample(index)}><img src={sample.image} alt="" loading="lazy"/><span>{sample.label}</span>{!files.length && sampleIndex === index && <i><WorkbenchIcon name="check" size={13}/></i>}</button>)}</div>}
+        <button className="analysis-run" disabled={running || !modelStatus.status?.model_ready || uploadMode === 'dicom' && (!files.length || !dicomAcknowledged)} onClick={() => void runAnalysis()}><WorkbenchIcon name={running ? 'refresh' : 'scan'} className={running ? 'wb-spin' : ''}/>{running ? `分析中 ${queue.job?.completed || 0}/${queue.job?.total || files.length || 1}` : '开始本地分析'}{!running && <WorkbenchIcon name="chevron" size={16}/>}</button>
+        <p className="analysis-intake-note"><WorkbenchIcon name="shield" size={14}/>无需上传影像至大模型服务</p>
+        <details className="analysis-model-scope"><summary>模型范围与版本</summary><p>当前模型延续五折 ResNet18 四分类架构，权重为审计后重新训练的研究版本。输出只表示闭集内部排序，不是癌细胞形态识别、病理诊断或患癌概率。</p></details>
         {error && <div className="analysis-error">{error}</div>}
         <section className="analysis-history">
           <header><div><span>CASE HISTORY</span><h3>病例分析记录</h3></div><b>{seriesHistory.length}</b></header>
@@ -291,7 +309,7 @@ export default function CtAnalysisWorkspace() {
       </aside>
 
       <section className="analysis-viewer">
-        {preview ? <ImageViewer src={preview} attentionSrc={result?.attention.available ? `${apiBaseUrl}/api/tasks/${encodeURIComponent(result.task_id)}/attention` : undefined} taskId={result?.task_id} title={result?.input.file_name || files[0]?.name || samples[sampleIndex].label} sliceIndex={activeResult} sliceCount={Math.max(results.length, 1)} onSliceChange={index => { if (index !== activeResult && confirmUnsavedChanges()) setActiveResult(index); }} /> : <div className="analysis-dicom-placeholder"><strong>DICOM 等待本地解析</strong><p>完成肺窗转换后可浏览已分析切片；原始DICOM不落库。</p></div>}
+        {preview ? <ImageViewer src={preview} attentionSrc={result?.attention.available ? `${apiBaseUrl}/api/tasks/${encodeURIComponent(result.task_id)}/attention` : undefined} taskId={result?.task_id} title={result?.input.file_name || files[0]?.name || samples[sampleIndex].label} sliceIndex={activeResult} sliceCount={Math.max(results.length, 1)} onSliceChange={async index => { if (index !== activeResult && await confirmUnsavedChanges()) setActiveResult(index); }} /> : <div className="analysis-dicom-placeholder"><WorkbenchIcon name="layers" size={38}/><strong>DICOM 等待本地解析</strong><p>完成肺窗转换后可浏览已分析切片；原始DICOM不落库。</p></div>}
         <footer><span>影像由本地服务处理 · DICOM 显示派生切片</span><span>不上传至大模型服务商</span></footer>
       </section>
 
@@ -311,7 +329,7 @@ export default function CtAnalysisWorkspace() {
             {!seriesExplanation && <button className="analysis-explain" disabled={explainingTask === seriesResult.representative_slice.task_id} onClick={() => { const representative = results.find((item) => item.task_id === seriesResult.representative_slice.task_id); if (representative) void generateExplanation(representative, true); }}>{explainingTask === seriesResult.representative_slice.task_id ? '正在生成模型说明…' : '生成聚合输出与局限说明'}</button>}
             {seriesExplanation && <section className="analysis-explanation"><header><span>CASE RATIONALE</span><b>{seriesExplanation.support_level}</b></header><p>{seriesExplanation.answer}</p>{!!seriesExplanation.evidence?.length && <div>{seriesExplanation.evidence.map((citation) => <span key={citation.citation_id} title={citation.excerpt}>{citation.citation_id} · {citation.title}{citation.verified !== false ? ' ✓' : ''}</span>)}</div>}{!!seriesExplanation.uncertainty?.length && <small>不确定性：{seriesExplanation.uncertainty.join('；')}</small>}</section>}
           </section>}
-          {results.length > 1 && <select aria-label="切换分析结果" value={activeResult} onChange={(event) => { if (confirmUnsavedChanges()) setActiveResult(Number(event.target.value)); }}>{results.map((item, index) => <option key={item.task_id} value={index}>{item.input.file_name}</option>)}</select>}
+          {results.length > 1 && <select aria-label="切换分析结果" value={activeResult} onChange={async event => { const next = Number(event.target.value); if (await confirmUnsavedChanges()) setActiveResult(next); }}>{results.map((item, index) => <option key={item.task_id} value={index}>{item.input.file_name}</option>)}</select>}
           {seriesResult && <div className="analysis-slice-label">当前切片结果</div>}
           <div className="analysis-primary"><span>内部最高排序（非诊断）</span><strong>{result.prediction.top_class_cn}</strong><b>{((result.prediction.probabilities[result.prediction.top_class] || 0) * 100).toFixed(1)}%</b><small>{result.prediction.decision === 'RESEARCH_RANKING' ? '达到内部研究门槛' : '已触发拒判'} · {result.task_id}</small></div>
           <div className="analysis-probabilities">{probabilities.map(([key, value]) => <div key={key}><span>{classLabels[key] || key}<b>{(value * 100).toFixed(1)}%</b></span><i><em style={{ width: `${value * 100}%` }} /></i></div>)}</div>
