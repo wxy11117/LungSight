@@ -1,12 +1,11 @@
 const samples = [
-  { label:'腺癌', code:'CASE-A01', image:'./public/ct-adeno.png', scores:[86.4,4.8,2.1,6.7], note:'腺癌倾向较高，建议结合薄层影像与临床信息复核。' },
-  { label:'大细胞癌', code:'CASE-L02', image:'./public/ct-large.png', scores:[5.2,88.7,1.9,4.2], note:'大细胞癌倾向较高，需由专业医师进行进一步鉴别。' },
-  { label:'正常肺部', code:'CASE-N03', image:'./public/ct-normal.png', scores:[1.6,0.8,95.9,1.7], note:'模型未发现明确癌症类别倾向，仍不排除其他肺部异常。' },
-  { label:'鳞状细胞癌', code:'CASE-S04', image:'./public/ct-squamous.png', scores:[7.9,2.8,1.2,88.1], note:'鳞状细胞癌倾向较高，建议进入医生复核工作流。' }
+  { label:'腺癌', code:'CASE-A01', image:'./public/ct-adeno.png' },
+  { label:'大细胞癌', code:'CASE-L02', image:'./public/ct-large.png' },
+  { label:'正常肺部', code:'CASE-N03', image:'./public/ct-normal.png' },
+  { label:'鳞状细胞癌', code:'CASE-S04', image:'./public/ct-squamous.png' }
 ];
 let active = 0;
 const buttons = [...document.querySelectorAll('.case-button')];
-const runButton = document.querySelector('.run-button');
 const status = document.querySelector('.result-head i');
 const imageBox = document.querySelector('.demo-image');
 const image = imageBox.querySelector('img');
@@ -15,43 +14,29 @@ const resultScore = document.querySelector('.result-primary > span');
 const note = document.querySelector('.ai-note p');
 const probabilities = [...document.querySelectorAll('.probability')];
 
-function paint(waiting) {
+function paint() {
   const sample = samples[active];
   document.querySelector('.viewer-toolbar > div:first-child span').textContent = `匿名影像 / ${sample.code}`;
   image.src = sample.image;
   image.alt = `${sample.label}匿名 CT 示例`;
-  resultName.textContent = waiting ? '—' : sample.label;
-  resultScore.textContent = waiting ? '等待分析' : `${Math.max(...sample.scores).toFixed(1)}%`;
-  note.textContent = waiting ? '点击运行模型，系统将生成四分类概率。' : sample.note;
-  probabilities.forEach((row,index)=>{
-    row.querySelector('b').textContent = waiting ? '0.0%' : `${sample.scores[index].toFixed(1)}%`;
-    row.querySelector('em').style.width = waiting ? '0%' : `${sample.scores[index]}%`;
+  resultName.textContent = '—';
+  resultScore.textContent = '桌面端分析';
+  note.textContent = '官网仅浏览示例。请下载桌面端，在本机运行真实模型分析。';
+  probabilities.forEach((row)=>{
+    row.querySelector('b').textContent = '—';
+    row.querySelector('em').style.width = '0%';
   });
-  status.textContent = waiting ? 'WAIT' : 'READY';
-  status.classList.toggle('ready', !waiting);
+  status.textContent = 'PREVIEW';
+  status.classList.remove('ready');
 }
 
 buttons.forEach((button,index)=>button.addEventListener('click',()=>{
   active = index;
   buttons.forEach((item,i)=>item.classList.toggle('active',i===index));
-  paint(true);
+  paint();
 }));
 
-runButton.addEventListener('click',()=>{
-  runButton.disabled = true;
-  runButton.querySelector('span').textContent = '正在分析影像…';
-  runButton.querySelector('i').textContent = '···';
-  status.textContent = 'RUNNING';
-  status.classList.remove('ready');
-  imageBox.classList.add('analysing');
-  window.setTimeout(()=>{
-    imageBox.classList.remove('analysing');
-    runButton.disabled = false;
-    runButton.querySelector('span').textContent = '运行示例分析';
-    runButton.querySelector('i').textContent = '→';
-    paint(false);
-  },1450);
-});
+paint();
 
 window.addEventListener('scroll',()=>{
   const total = document.documentElement.scrollHeight - innerHeight;

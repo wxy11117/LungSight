@@ -43,10 +43,10 @@ function MedicalBrandMark() {
 }
 
 const workflowSteps = [
-  { key: 'import', number: '01', title: '数据批量导入', english: 'Batch Data Intake', icon: '⇩', description: '统一接收 DICOM、PNG、JPG 等影像，建立匿名化任务队列并保留来源追踪。', metrics: [['1,000+', '单批影像容量'], ['6', '支持文件格式'], ['LOCAL', '本地处理模式']] },
+  { key: 'import', number: '01', title: '数据批量导入', english: 'Batch Data Intake', icon: '⇩', description: '支持常见图片与基础单帧 CT DICOM 导入，建立本地后台任务。DICOM 像素隐私仍须人工复核。', metrics: [['批量', '按导入限制处理'], ['6', '支持文件格式'], ['LOCAL', '本地处理模式']] },
   { key: 'audit', number: '02', title: '数据库自动检测', english: 'Automated Data Audit', icon: '⌁', description: '自动检查文件完整性、重复影像、尺寸异常和跨数据集泄漏，先保证数据可信。', metrics: [['SHA-256', '文件完整性'], ['pHash', '近重复检测'], ['AUTO', '异常清单生成']] },
   { key: 'compare', number: '03', title: '生成对比分析', english: 'Comparative Analysis', icon: '≋', description: '将当前影像结果与同批次样本、历史记录和类别分布进行结构化对比。', metrics: [['4 类', '概率同步对比'], ['趋势', '历史变化追踪'], ['REPORT', '结构化报告']] },
-  { key: 'models', number: '04', title: '多模型交叉验证', english: 'Multi-model Cross-check', icon: '⌘', description: '由多个模型与五折结果进行一致性核验，标记分歧样本并优先交由医生复核。', metrics: [['5-fold', '折间一致性'], ['3 路', '候选模型核验'], ['FLAG', '分歧自动标记']] },
+  { key: 'models', number: '04', title: '五折一致性检查', english: 'Multi-model Cross-check', icon: '⌘', description: '当前版本汇总五折 ResNet18 的概率与投票一致性；其他模型仅为后续研究路线。图中数值为架构示意。', metrics: [['5-fold', '折间一致性'], ['3 路', '候选模型待接入'], ['FLAG', '分歧自动标记']] },
   { key: 'evidence', number: '05', title: '给出判别依据', english: 'Evidence-backed Result', icon: '◎', description: '同时展示分类概率、折间一致性、数据质量和关键影像区域，避免只给黑盒结论。', metrics: [['概率', '四分类置信度'], ['5/5', '折间判断一致'], ['QC', '影像质量状态']] },
   { key: 'guidance', number: '06', title: '诊疗路径参考', english: 'Clinical Pathway Reference', icon: '＋', description: '依据模型结果生成医生复核清单与指南参考入口，最终诊疗决策始终由专业医师完成。', metrics: [['CHECKLIST', '医生复核清单'], ['GUIDELINE', '指南信息入口'], ['HUMAN', '医师最终决策']] },
 ] as const;
@@ -61,7 +61,7 @@ const dagSteps = [
   { key: 'intake', number: '01', title: '影像批量导入', meta: 'DICOM / PNG / JPG', icon: '⇩' },
   { key: 'audit', number: '02', title: '数据库自动检测', meta: 'SHA-256 · pHash · QC', icon: '⌁' },
   { key: 'analyse', number: '03', title: '生成对比分析', meta: '四分类概率与历史趋势', icon: '≋' },
-  { key: 'verify', number: '04', title: '多模型交叉验证', meta: 'ResNet18 × 5 · Consensus', icon: '⌘' },
+  { key: 'verify', number: '04', title: '五折一致性检查', meta: 'ResNet18 × 5 · Consensus', icon: '⌘' },
   { key: 'evidence', number: '05', title: '给出判别依据', meta: '概率 · 一致性 · 质量', icon: '◎' },
   { key: 'review', number: '06', title: '医生复核与路径参考', meta: 'Human in the loop', icon: '＋' },
 ] as const;
@@ -92,9 +92,9 @@ const techNodes = [
   { key: 'sybil', label: 'Sybil', category: 'paper', categoryLabel: '论文研究', x: 49, y: 10, status: 'JCO · 2023', metric: '1 年 AUC 0.92 / 0.86 / 0.94', detail: '仅使用一次 LDCT，在 NLST、MGH 与 CGMH 三个独立测试集验证未来肺癌风险；论文同时强调仍需进一步临床研究。', source: 'https://ascopubs.org/doi/10.1200/JCO.22.01345' },
   { key: 'medsam', label: 'MedSAM', category: 'paper', categoryLabel: '论文研究', x: 69, y: 18, status: 'Nature Communications · 2024', metric: '157 万+ 图像-掩膜对', detail: '覆盖 10 种医学影像模态和 30 余种癌症的提示式分割基础模型，可作为未来病灶勾画模块的研究参照。', source: 'https://www.nature.com/articles/s41467-024-44824-z' },
   { key: 'maira', label: 'MAIRA-2', category: 'paper', categoryLabel: '医学 Agent 研究', x: 86, y: 31, status: 'Microsoft Research · 2024', metric: '定位式放射报告', detail: '面向胸部 X 光的多模态研究模型，将影像发现与空间定位关联；此处仅借鉴“证据落点 + 报告草拟”范式。', source: 'https://www.microsoft.com/en-us/research/project/project-maira/' },
-  { key: 'resnet', label: 'ResNet18 × 5', category: 'model', categoryLabel: '主分类模型', role: 'primary', x: 36, y: 42, status: '正式采用', metric: 'Accuracy 90.66% · Macro-F1 90.98%', detail: '当前软件的肺部 CT 四分类主模型。采用分层分组五折训练与概率合并，在 557 张严格去重 OOF 样本上完成评估；最终结论以该模型输出为主。' },
-  { key: 'dinov2', label: 'DINOv2', category: 'model', categoryLabel: '辅助判别模型', role: 'auxiliary', x: 28, y: 55, status: '辅助复核', metric: '候选模型 · 特征对照', detail: '用于提供不同视觉表征下的第二意见，参与分歧样本提示和候选模型对照，不直接替代 ResNet18 的最终分类结果。' },
-  { key: 'biomedclip', label: 'BiomedCLIP', category: 'model', categoryLabel: '辅助判别模型', role: 'auxiliary', x: 35, y: 69, status: '辅助复核', metric: '医学图文预训练表征', detail: '利用医学图文预训练特征提供辅助判别视角，主要用于交叉核验和不确定性提示，不作为正式主分类模型。' },
+  { key: 'resnet', label: 'ResNet18 × 5', category: 'model', categoryLabel: '主分类模型', role: 'primary', x: 36, y: 42, status: '研究预览', metric: 'Accuracy 84.98% · Macro-F1 84.93%', detail: '当前软件采用 research-fivefold-20260902-165455 研究版权重，基于 546 张目录弱标签二维图片训练。内部折外指标仅描述弱标签一致程度，尚未完成患者级与外部临床验证。' },
+  { key: 'dinov2', label: 'DINOv2', category: 'model', categoryLabel: '候选研究模型', role: 'auxiliary', x: 28, y: 55, status: '未集成', metric: '候选模型 · 特征对照', detail: '作为不同视觉表征的候选研究路线保留，当前 Windows 安装包未集成此模型，也不提供其在线辅助判别结果。' },
+  { key: 'biomedclip', label: 'BiomedCLIP', category: 'model', categoryLabel: '候选研究模型', role: 'auxiliary', x: 35, y: 69, status: '未集成', metric: '医学图文预训练表征', detail: '作为医学图文表征的候选研究路线保留，当前 Windows 安装包未集成此模型，也不提供其交叉核验结果。' },
   { key: 'qc-agent', label: '影像质控 Agent', category: 'agent', categoryLabel: '专病 Agent', x: 84, y: 55, status: '产品架构', metric: '格式 · 重复 · 质量', detail: '在推理前检查格式、匿名化状态、重复样本与影像质量，异常任务不会直接进入分类结论。' },
   { key: 'review-agent', label: '分类复核 Agent', category: 'agent', categoryLabel: '专病 Agent', x: 76, y: 73, status: '产品架构', metric: '多模型一致性', detail: '汇总五折模型和候选模型的概率分布，定位分歧样本，并把不确定性显式交给医生。' },
   { key: 'evidence-agent', label: '循证检索 Agent', category: 'agent', categoryLabel: '专病 Agent', x: 89, y: 84, status: '产品架构', metric: '论文 · 指南 · 版本', detail: '按问题检索论文与指南来源，返回可核验的出处和适用范围，不把语言模型回答当作医学事实。' },
@@ -315,19 +315,19 @@ export default function Home() {
           <div className="eyebrow"><i /> 肺部 CT 四分类智能辅助分析系统</div>
           <h1>让每一张肺部 CT<br /><span>更早被看见</span></h1>
           <p className="hero-lead">
-            面向肺癌早筛场景的智能影像辅助分析平台。用五折深度学习模型快速识别四类肺部影像，
-            将复杂算法转化为医生看得懂、用得上的决策信息。
+            面向肺部 CT 四分类研究与影像复核的软件原型。用本地五折模型整理影像结果，
+            连接影像查看、人工记录、循证问答与报告导出。
           </p>
           <div className="hero-actions">
-            <a className="primary-button" href="#demo">进入智能分析 <span>→</span></a>
+            <a className="primary-button" href="#demo">查看分析演示 <span>→</span></a>
             <a className="text-button" href="#technology">了解模型能力 <span>↓</span></a>
           </div>
           <div className="metric-strip">
-            <div><strong>90.66%</strong><span>严格去重 OOF 准确率</span></div>
+            <div><strong>84.98%</strong><span>内部弱标签 OOF 一致率</span></div>
             <div><strong>5-fold</strong><span>稳健概率集成</span></div>
-            <div><strong>≈ 61 ms</strong><span>单张推理速度*</span></div>
+            <div><strong>LOCAL</strong><span>影像在本机处理</span></div>
           </div>
-          <p className="metric-note">* 既有实验环境参考值；本系统为科研与产品验证原型，不替代医生诊断。</p>
+          <p className="metric-note">内部指标不代表临床准确率；患者级独立性与外部泛化尚未验证。</p>
         </div>
 
         <div className="hero-visual" aria-label="肺部 CT 智能分析示意">
@@ -346,7 +346,7 @@ export default function Home() {
             </div>
           </div>
           <div className="float-chip chip-one"><b>04</b><span>影像类别<br />同步识别</span></div>
-          <div className="float-chip chip-two"><b>100%</b><span>正常类召回率<br />OOF 验证</span></div>
+          <div className="float-chip chip-two"><b>5-fold</b><span>概率集成<br />研究模型</span></div>
           <div className="float-chip chip-three"><i /> OFFLINE<span>隐私友好推理</span></div>
         </div>
       </section>
@@ -422,7 +422,7 @@ export default function Home() {
           ].map((item, index) => <div className="pipeline-step" key={item[1]}><span>{item[0]}</span><i className={index === 3 ? 'active' : ''} /><h3>{item[1]}</h3><code>{item[2]}</code><p>{item[3]}</p></div>)}
         </div>
         <div className="advantage-bento">
-          <article className="bento-card bento-main reveal"><span className="mini-label">STRICT OOF VALIDATION</span><div className="big-number">90.66<small>%</small></div><h3>不是简单训练集分数</h3><p>在557张严格去重的折外样本上评估，宏平均 F1 达 90.98%，更接近模型对未见数据的真实表现。</p><div className="fold-chart" aria-label="五折准确率示意">{[90.57,86.61,90.09,93.28,92.66].map((v,i)=><div key={v}><i style={{height:`${v-70}%`}}/><span>F{i+1}</span></div>)}</div></article>
+          <article className="bento-card bento-main reveal"><span className="mini-label">INTERNAL RESEARCH VALIDATION</span><div className="big-number">84.98<small>%</small></div><h3>内部研究验证</h3><p>当前研究版权重基于 546 张目录弱标签二维图片训练，内部 OOF accuracy 84.98%、macro-F1 84.93%。这些数字不代表临床准确率。</p><div className="fold-chart" aria-label="五个模型共同参与概率集成">{[1,2,3,4,5].map((v)=><div key={v}><i style={{height:"24%"}}/><span>F{v}</span></div>)}</div></article>
           <article className="bento-card reveal"><span className="mini-label">PRIVACY FIRST</span><div className="bento-symbol">◉</div><h3>全程离线推理</h3><p>模型权重随软件本地部署，不依赖联网下载，降低医学影像外传风险。</p><span className="status-pill"><i /> LOCAL READY</span></article>
           <article className="bento-card reveal"><span className="mini-label">FOUR-CLASS</span><div className="class-wheel"><span>腺</span><span>大</span><span>正</span><span>鳞</span></div><h3>四类同步判断</h3><p>一次推理输出四类概率，既给出结论，也保留不确定性供医生复核。</p></article>
         </div>
@@ -458,7 +458,7 @@ export default function Home() {
                 {step.key === 'import' && <div className="workflow-graphic import-graphic"><div className="file-stream"><span>DICOM</span><span>PNG</span><span>JPG</span></div><div className="flow-lines"><i /><i /><i /></div><div className="data-core"><small>SECURE INTAKE</small><strong>影像任务队列</strong><span><i /> 128 / 128 已就绪</span></div></div>}
                 {step.key === 'audit' && <div className="workflow-graphic audit-graphic"><div className="audit-orbit"><span>AI QC</span><i /><i /><i /></div><div className="audit-checks"><span><i>✓</i> 文件完整性<small>PASS</small></span><span><i>✓</i> 近重复影像<small>CHECKED</small></span><span><i>!</i> 尺寸异常<small>2 FLAGGED</small></span></div></div>}
                 {step.key === 'compare' && <div className="workflow-graphic compare-graphic"><div className="compare-cards"><div><small>CURRENT</small><strong>88.1%</strong><span>鳞状细胞癌倾向</span></div><i>VS</i><div><small>HISTORY</small><strong>82.6%</strong><span>同类样本均值</span></div></div><div className="compare-bars">{[62,81,44,88,73,92,68].map((value)=><i key={value} style={{height:`${value}%`}} />)}</div></div>}
-                {step.key === 'models' && <div className="workflow-graphic models-graphic"><div className="model-nodes"><span>ResNet18<small>90.7%</small></span><span>DINOv2<small>82.6%</small></span><span>BiomedCLIP<small>83.3%</small></span></div><div className="model-links"><i /><i /><i /></div><div className="consensus-node"><small>CONSENSUS</small><strong>3 / 3</strong><span>方向一致</span></div></div>}
+                {step.key === 'models' && <div className="workflow-graphic models-graphic"><div className="model-nodes"><span>ResNet18<small>5-fold</small></span><span>DINOv2<small>未集成</small></span><span>BiomedCLIP<small>未集成</small></span></div><div className="model-links"><i /><i /><i /></div><div className="consensus-node"><small>CONSENSUS</small><strong>5-fold</strong><span>研究集成</span></div></div>}
                 {step.key === 'evidence' && <div className="workflow-graphic evidence-graphic"><div className="evidence-scan"><img src="/ct-squamous.png" alt="判别依据示例 CT" /><span /></div><div className="evidence-stack"><div><span>最高分类概率</span><strong>88.1%</strong></div><div><span>折间判断一致</span><strong>5 / 5</strong></div><div><span>影像质量检测</span><strong>PASS</strong></div></div></div>}
                 {step.key === 'guidance' && <div className="workflow-graphic guidance-graphic"><div className="guidance-path"><span><i>1</i>影像科医生复核<small>必须</small></span><span><i>2</i>结合临床与病理信息<small>建议</small></span><span><i>3</i>进入规范化诊疗路径<small>指南参考</small></span></div><div className="human-decision"><b>HUMAN IN THE LOOP</b><span>不自动开具诊断或处方</span></div></div>}
 
@@ -470,7 +470,7 @@ export default function Home() {
         </div>
 
         <div className="platform-intro reveal" id="workflow-platform">
-          <div><span className="mini-label">VISUAL WORKFLOW MANAGEMENT</span><h2>可视化工作流，<br /><em>一站式管理</em></h2><p>把六个分析模块编排为可追踪 DAG，从任务队列、模型状态到医生复核节点，实时展示每一步的运行状态。</p></div>
+          <div><span className="mini-label">VISUAL WORKFLOW MANAGEMENT</span><h2>可视化工作流，<br /><em>一站式管理</em></h2><p>以下为工作流架构交互示意，任务数量、吞吐与运行日志为展示数据。实际桌面端已支持后台分析、取消与继续、重启恢复和人工复核。</p></div>
           <div className="platform-tabs" role="tablist" aria-label="工作流管理平台视图">
             {platformTabs.map((tab, index) => <button key={tab.key} className={activePlatformTab === index ? 'active' : ''} onClick={() => setActivePlatformTab(index)} role="tab" aria-selected={activePlatformTab === index} data-platform-tab={index}><i>{tab.icon}</i>{tab.label}</button>)}
           </div>
@@ -484,7 +484,7 @@ export default function Home() {
               <section className={activePlatformTab === 0 ? 'platform-panel active' : 'platform-panel'} data-platform-panel={0}>
                 <div className="panel-head"><div><small>WORKFLOW OVERVIEW</small><h3>今日分析任务</h3></div><span><i /> 系统运行正常</span></div>
                 <div className="overview-metrics"><article><span>任务队列</span><strong>128</strong><small>12 个批次</small></article><article><span>已完成分析</span><strong>96</strong><small>75.0% COMPLETE</small></article><article><span>待医生复核</span><strong>14</strong><small>HIGH PRIORITY 3</small></article><article><span>模型服务</span><strong>5 / 5</strong><small>ALL ONLINE</small></article></div>
-                <div className="overview-table"><div className="overview-table-head"><span>任务批次</span><span>当前阶段</span><span>进度</span><span>状态</span></div>{[['CT-2026-0826-A','多模型交叉验证','82%','运行中'],['CT-2026-0826-B','医生复核','100%','待复核'],['CT-2026-0825-F','结果归档','100%','已完成']].map((row,index)=><div className="overview-row" key={row[0]}><strong>{row[0]}</strong><span>{row[1]}</span><i><em style={{width:row[2]}} /></i><b className={index===0?'running':index===1?'review':'done'}>{row[3]}</b></div>)}</div>
+                <div className="overview-table"><div className="overview-table-head"><span>任务批次</span><span>当前阶段</span><span>进度</span><span>状态</span></div>{[['CT-2026-0826-A','五折一致性检查','82%','运行中'],['CT-2026-0826-B','医生复核','100%','待复核'],['CT-2026-0825-F','结果归档','100%','已完成']].map((row,index)=><div className="overview-row" key={row[0]}><strong>{row[0]}</strong><span>{row[1]}</span><i><em style={{width:row[2]}} /></i><b className={index===0?'running':index===1?'review':'done'}>{row[3]}</b></div>)}</div>
               </section>
 
               <section className={activePlatformTab === 1 ? 'platform-panel active' : 'platform-panel'} data-platform-panel={1}>
@@ -543,7 +543,7 @@ export default function Home() {
         <div className="section-kicker reveal"><span>05</span> RESEARCH &amp; AGENT ECOSYSTEM</div>
         <div className="tech-graph-heading reveal">
           <div><h2>论文证据与诊疗 Agent，<br /><em>组成可演进的技术生态</em></h2><p>以当前五折分类模型为核心，连接公开数据、医学影像研究与肺癌专病工作流；每个节点都标注来源或产品状态。</p></div>
-          <div className="tech-graph-stats"><div><strong>5</strong><span>研究锚点</span></div><div><strong>4</strong><span>数据层节点</span></div><div><strong>3</strong><span>模型协作</span></div></div>
+          <div className="tech-graph-stats"><div><strong>5</strong><span>研究锚点</span></div><div><strong>4</strong><span>数据层节点</span></div><div><strong>3</strong><span>模型研究路线</span></div></div>
         </div>
 
         <div className="tech-graph-shell reveal">
@@ -581,8 +581,8 @@ export default function Home() {
             <aside><span className="mini-label">CLINICAL SAFETY BOUNDARY</span><h3>Agent 是协作层，<br />不是自动诊疗终点。</h3><p>研究模型、公开数据与指南索引用于支撑辅助分析。系统不自动下诊断、不生成处方，所有患者级结论均需医生结合病理、分期和临床信息确认。</p><div><span><i>01</i>来源可核验</span><span><i>02</i>模型可追踪</span><span><i>03</i>医生最终决策</span></div></aside>
           </div>
         </div>
-        <div className="model-selection-note reveal"><span>MODEL SELECTION</span><strong>ResNet18 主判别</strong><i>＋</i><strong>DINOv2 辅助</strong><i>＋</i><strong>BiomedCLIP 辅助</strong><p>融合模型 Accuracy 达 91.92%，但肺鳞癌 Recall 由 94.61% 降至 93.41%。依据保守工程筛选原则，正式分类仍采用未经温度缩放与概率融合的原始 ResNet18。</p></div>
-        <p className="tech-source-note reveal">图中 Ardila、Sybil、MedSAM、MAIRA-2 与 PathChat 为公开论文或研究项目；DINOv2 与 BiomedCLIP 仅用于辅助判别和交叉核验。除 ResNet18 × 5 外，均不表示已作为主模型集成，也不表示获得临床批准。</p>
+        <div className="model-selection-note reveal"><span>MODEL SELECTION</span><strong>ResNet18 主判别</strong><i>＋</i><strong>DINOv2 研究路线</strong><i>＋</i><strong>BiomedCLIP 研究路线</strong><p>当前安装包仅集成五折 ResNet18 研究模型，使用平均概率与温度缩放（T=0.56）。DINOv2 与 BiomedCLIP 尚未集成；病例级结论仍被阻断。模型状态与验证范围以仓库模型卡为准。</p></div>
+        <p className="tech-source-note reveal">图中 Ardila、Sybil、MedSAM、MAIRA-2 与 PathChat 为研究参考；DINOv2 与 BiomedCLIP 为未集成的候选路线。当前软件只使用五折 ResNet18 进行本地研究推理，未获得临床批准。</p>
       </section>
 
       <section className="section demo-section" id="demo">
@@ -628,10 +628,10 @@ export default function Home() {
           <article className="impact-card reveal"><span>效率</span><strong>更快预筛</strong><p>批量完成影像初筛，让医生把更多时间投入疑难病例与最终决策。</p></article>
           <article className="impact-card reveal"><span>一致性</span><strong>量化输出</strong><p>用统一流程输出类别概率，减少纯经验判断带来的波动。</p></article>
           <article className="impact-card reveal"><span>可及性</span><strong>能力下沉</strong><p>离线部署与轻量模型让基层机构也能获得智能辅助分析能力。</p></article>
-          <article className="impact-card reveal"><span>成长性</span><strong>模型扩展</strong><p>未来接入病灶定位、可解释热力图、多模态病历与更多胸部疾病类别。</p></article>
+          <article className="impact-card reveal"><span>成长性</span><strong>模型扩展</strong><p>已支持 Grad-CAM 注意力图与人工标记；病灶分割、多模态病历和更多疾病类别仍需后续研究。</p></article>
         </div>
         <div className="roadmap reveal">
-          <div className="roadmap-copy"><span className="mini-label">PRODUCT DEVELOPMENT ROADMAP</span><h3>Agent 回归验收已接通，<br />下一步验证真实泛化。</h3><p>当前版本已完成 38 项本地回归测试，覆盖事实、引用、未知问题与医疗安全边界；下一阶段应引入独立外部数据并开展多中心验证。</p><a href="/evaluation">查看 Agent 评测 →</a></div>
+          <div className="roadmap-copy"><span className="mini-label">PRODUCT DEVELOPMENT ROADMAP</span><h3>Agent 回归验收已接通，<br />下一步验证真实泛化。</h3><p>beta.3 已完成前端回归、包内运行与 8 项工作流验收，覆盖任务恢复、影像查看、标记和报告。工程验收不代表临床验证；下一阶段仍需独立外部数据评估。</p><a href="/evaluation">查看 Agent 评测 →</a></div>
           <div className="roadmap-track">{[['NOW','循证 Agent','检索 · 引用 · 拒答 · 归档'],['NEXT','外部验证','独立数据与分层评估'],['FUTURE','临床研究','多中心前瞻性验证']].map((item,i)=><div key={item[0]} className={i===0?'current':''}><i>{i+1}</i><span>{item[0]}</span><strong>{item[1]}</strong><p>{item[2]}</p></div>)}</div>
         </div>
       </section>
@@ -662,10 +662,21 @@ export default function Home() {
           <div className="boundary-flow"><span><i>01</i>数据授权</span><em>→</em><span><i>02</i>模型提示</span><em>→</em><span><i>03</i>医生复核</span><em>→</em><span><i>04</i>审计留痕</span></div>
         </div>
 
-        <div className="app-release-gateway reveal" id="app-download">
-          <div className="app-release-brand"><MedicalBrandMark /><div><small>DESKTOP APPLICATION</small><h3>LungSight 桌面端</h3><p>本地影像管理、批量分析与医生复核工作台</p></div></div>
-          <div className="release-progress" aria-label="应用发布状态"><span className="done"><i>✓</i><b>网页原型</b><small>已完成</small></span><em>→</em><span className="done"><i>✓</i><b>模型服务</b><small>已集成</small></span><em>→</em><span className="done"><i>✓</i><b>基础安全验证</b><small>已通过</small></span><em>→</em><span className="active"><i>4</i><b>安装包发布</b><small>公共测试</small></span></div>
-          <div className="release-action release-action-ready"><span><i /> RELEASE STATUS</span><strong>公共测试版</strong><a className="download-button" href="https://github.com/wxy11117/LungSight/releases/download/v0.1.0-beta.1/LungSight-Setup-0.1.0-beta.1-win-x64.exe" rel="noreferrer" aria-label="下载 LungSight 0.1.0 beta 1 Windows 64位安装包"><i>⇩</i><span>下载 Windows 安装包</span></a><small>v0.1.0-beta.1 · Windows 10/11 x64 · 约 643 MB<br /><a href="https://github.com/wxy11117/LungSight/releases/download/v0.1.0-beta.1/SHA256SUMS.txt" rel="noreferrer">下载 SHA256 校验文件 ↗</a></small></div>
+        <div className="release-showcase reveal" id="latest-release">
+  <div className="release-showcase-heading"><span className="mini-label">NEW IN BETA.3 · 2026.11.17</span><h3>更清晰的工作台，更连贯的分析流程</h3><p>从影像导入到人工记录，把每一步的状态留在眼前。</p></div>
+  <div className="release-feature-grid">
+    <article><span>01 / REVIEW</span><h4>看得清，也记得住</h4><p>缩放与大图查看、Grad-CAM 叠加、人工标记和结构化报告，连接同一次分析。</p></article>
+    <article><span>02 / CONTINUITY</span><h4>任务进度可以继续</h4><p>后台队列支持取消与继续、重启恢复；已完成项目保留，失败项有明确提示。</p></article>
+    <article><span>03 / EXPERIENCE</span><h4>交互反馈更明确</h4><p>亮色、夜间与护眼外观，清晰的模型状态，以及标记、复核和设置的草稿保护。</p></article>
+  </div>
+  <figure className="release-screenshot"><a href="/release/beta3-workbench.jpg" target="_blank" rel="noreferrer" aria-label="查看 beta.3 工作台原始截图"><img src="/release/beta3-workbench.jpg" alt="LungSight beta.3 夜间影像工作台，展示本地模型状态、任务队列、影像查看与四分类研究排序" loading="lazy" width="2526" height="1319" /></a><figcaption>软件实际界面 · 公开示例与测试记录 · 图中数值为研究排序，不构成诊断。</figcaption></figure>
+  <p className="release-service-note">可在设置页接入 DeepSeek、ChatGPT 或 Kimi（需自行配置服务商 API Key）。CT 像素保留本地；云端问答仅接收结构化上下文与检索摘录。</p>
+  <div className="release-document-links"><a href="https://github.com/wxy11117/LungSight/releases/tag/v0.1.0-beta.3">查看更新说明 ↗</a><a href="https://github.com/wxy11117/LungSight/blob/main/documentation/COMPETITION_DEMO_GUIDE.md">演示与使用步骤 ↗</a><a href="https://github.com/wxy11117/LungSight/blob/main/documentation/MODEL_CARD_RESEARCH_2026-09-03.md">模型适用范围 ↗</a></div>
+</div>
+<div className="app-release-gateway reveal" id="app-download">
+          <div className="app-release-brand"><MedicalBrandMark /><div><small>DESKTOP APPLICATION</small><h3>LungSight 桌面端</h3><p>新版影像工作台 · 后台任务恢复 · 三种外观与草稿保护</p></div></div>
+          <div className="release-progress" aria-label="应用发布状态"><span className="done"><i>✓</i><b>网页原型</b><small>已完成</small></span><em>→</em><span className="done"><i>✓</i><b>模型服务</b><small>已集成</small></span><em>→</em><span className="done"><i>✓</i><b>工程流程验收</b><small>已通过</small></span><em>→</em><span className="active"><i>4</i><b>安装包发布</b><small>公共测试</small></span></div>
+          <div className="release-action release-action-ready"><span><i /> RELEASE STATUS</span><strong>公共测试版</strong><a className="download-button" href="https://github.com/wxy11117/LungSight/releases/download/v0.1.0-beta.3/LungSight-Setup-0.1.0-beta.3-win-x64.exe" rel="noreferrer" aria-label="下载 LungSight 0.1.0 beta 3 Windows 64位安装包"><i>⇩</i><span>下载 Windows 安装包</span></a><small>v0.1.0-beta.3 · Windows 10/11 x64 · 约 668 MB<br /><a href="https://github.com/wxy11117/LungSight/releases/download/v0.1.0-beta.3/SHA256SUMS.txt" rel="noreferrer">下载 SHA256 校验文件 ↗</a></small></div>
         </div>
 
         <div className="responsibility-sources reveal"><span>设计参考</span><a href="https://www.who.int/publications/i/item/9789240029200" target="_blank" rel="noreferrer">WHO《人工智能促进健康的伦理与治理》↗</a><a href="https://xzfg.moj.gov.cn/mobile/law/detail?LawID=1739" target="_blank" rel="noreferrer">《医疗器械监督管理条例》↗</a><p>以上信息用于说明设计原则，不构成法律或合规意见；实际应用应根据部署地区、预期用途和最新规则进行专业评估。</p></div>
