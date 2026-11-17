@@ -1,7 +1,9 @@
 'use client';
 
 import BackToAgent from '../back-to-agent';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import ImageViewer from '../components/image-viewer';
+import AnalysisQueuePanel, { activeJobStates, useAnalysisQueue } from '../components/analysis-queue';
 import { apiBaseUrl, responseMessage } from '../auth-client';
 
 const samples = [
@@ -112,9 +114,10 @@ export default function CtAnalysisWorkspace() {
   const [seriesHistory, setSeriesHistory] = useState<SeriesResult[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [activeResult, setActiveResult] = useState(0);
-  const [viewMode, setViewMode] = useState<'image' | 'attention'>('image');
   const [running, setRunning] = useState(false);
-  const [progress, setProgress] = useState({ done: 0, total: 0 });
+  const lastSeries = useRef('');
+  const selectedJob = useRef('');
+  const selectionRevision = useRef(0);
   const [error, setError] = useState('');
   const [explanations, setExplanations] = useState<Record<string, Explanation>>({});
   const [explanationErrors, setExplanationErrors] = useState<Record<string, string>>({});
@@ -138,103 +141,92 @@ export default function CtAnalysisWorkspace() {
   const seriesProbabilities = useMemo(() => seriesResult ? Object.entries(seriesResult.prediction.probabilities).sort((a, b) => b[1] - a[1]) : [], [seriesResult]);
   const seriesExplanation = seriesResult ? explanations[seriesResult.representative_slice.task_id] : undefined;
   const preview = result
-    ? `${apiBaseUrl}/api/tasks/${encodeURIComponent(result.task_id)}/${viewMode === 'attention' ? 'attention' : 'image'}`
+    ? `${apiBaseUrl}/api/tasks/${encodeURIComponent(result.task_id)}/image`
     : previewUrl || (uploadMode === 'image' ? samples[sampleIndex].image : '');
 
   const selectFiles = (list: FileList | null, mode: 'image' | 'dicom') => {
     const selected = list ? Array.from(list) : [];
     if (!selected.length) return;
+    selectionRevision.current += 1; lastSeries.current = ''; queue.clear();
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setUploadMode(mode);
     setFiles(selected);
     setPreviewUrl(mode === 'image' ? URL.createObjectURL(selected[0]) : '');
-    setResults([]); setSeriesResult(null); setActiveResult(0); setViewMode('image'); setError(''); setProgress({ done: 0, total: selected.length });
+    setResults([]); setSeriesResult(null); setActiveResult(0);  setError('');
   };
 
   const changeUploadMode = (mode: 'image' | 'dicom') => {
+    selectionRevision.current += 1; lastSeries.current = ''; queue.clear();
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setUploadMode(mode); setFiles([]); setPreviewUrl(''); setResults([]); setSeriesResult(null);
-    setActiveResult(0); setViewMode('image'); setError(''); setDicomAcknowledged(false);
-    setProgress({ done: 0, total: 0 });
+    setActiveResult(0);  setError(''); setDicomAcknowledged(false);
+
   };
 
   const selectSample = (index: number) => {
+    selectionRevision.current += 1; lastSeries.current = ''; queue.clear();
     if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setSampleIndex(index); setUploadMode('image'); setFiles([]); setCaseName(''); setPreviewUrl(''); setResults([]); setSeriesResult(null); setActiveResult(0); setViewMode('image'); setError(''); setDicomAcknowledged(false); setProgress({ done: 0, total: 0 });
+    setSampleIndex(index); setUploadMode('image'); setFiles([]); setCaseName(''); setPreviewUrl(''); setResults([]); setSeriesResult(null); setActiveResult(0);  setError(''); setDicomAcknowledged(false);
   };
 
-  const openStoredSeries = async (seriesId: string) => {
+  const openStoredSeries = async (seriesId: string, keepSlice = false) => {
+    const revision = ++selectionRevision.current;
+    if (!keepSlice) { queue.clear(); lastSeries.current = ''; }
     setHistoryLoading(true); setError('');
     try {
       const response = await fetch(`${apiBaseUrl}/api/series/${encodeURIComponent(seriesId)}`, { credentials: 'include' });
       if (response.status === 401) { window.location.replace(`/auth?returnTo=${encodeURIComponent('/analysis')}`); return; }
       if (!response.ok) throw new Error(await responseMessage(response, '病例记录读取失败'));
       const series = await response.json() as SeriesResult;
+      if (revision !== selectionRevision.current) return;
       const representativeIndex = series.items.findIndex((item) => item.task_id === series.representative_slice.task_id);
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       setFiles([]); setPreviewUrl(''); setCaseName(series.case_name); setSeriesResult(series); setResults(series.items);
+      setSeriesHistory(current => [series, ...current.filter(item => item.series_id !== seriesId)].slice(0, 20));
       setUploadMode(series.input_mode === 'DICOM' ? 'dicom' : 'image');
-      setActiveResult(representativeIndex >= 0 ? representativeIndex : 0); setViewMode('image');
+      setActiveResult(current => keepSlice ? Math.max(0, Math.min(current, series.items.length - 1)) : Math.max(0, representativeIndex));
       const evidenceResponse = await fetch(`${apiBaseUrl}/api/tasks/${encodeURIComponent(series.representative_slice.task_id)}/evidence/history`, { credentials: 'include' });
       if (evidenceResponse.ok) {
         const evidencePayload = await evidenceResponse.json() as { items: Explanation[] };
         if (evidencePayload.items[0]) setExplanations((current) => ({ ...current, [series.representative_slice.task_id]: evidencePayload.items[0] }));
       }
-    } catch (reason) { setError(reason instanceof Error ? reason.message : '病例记录读取失败'); }
-    finally { setHistoryLoading(false); }
+    } catch (reason) { if (revision === selectionRevision.current) { lastSeries.current = ''; setError(reason instanceof Error ? reason.message : '病例记录读取失败'); } }
+    finally { if (revision === selectionRevision.current) setHistoryLoading(false); }
   };
 
+  const queue = useAnalysisQueue<AnalysisResult>(job => {
+    if (selectedJob.current !== job.job_id) {
+      selectedJob.current = job.job_id; selectionRevision.current += 1;
+      lastSeries.current = ''; setSeriesResult(null); setActiveResult(0);
+    }
+    setRunning(activeJobStates.has(job.state));
+    setResults(job.results);
+    setActiveResult(current => Math.max(0, Math.min(current, job.results.length - 1)));
+    if (job.series_id && lastSeries.current !== job.series_id) {
+      lastSeries.current = job.series_id;
+      void openStoredSeries(job.series_id, true);
+    } else if (!job.series_id) { setSeriesResult(null); lastSeries.current = ''; }
+  });
   const runAnalysis = async () => {
     if (running) return;
+    selectionRevision.current += 1; lastSeries.current = ''; queue.clear();
     setRunning(true); setError(''); setResults([]); setSeriesResult(null); setActiveResult(0);
     try {
-      if (uploadMode === 'dicom') {
-        if (!files.length) throw new Error('请选择同一个CT序列的DICOM文件');
-        if (!dicomAcknowledged) throw new Error('请先确认数据授权与像素隐私复核要求');
-        setProgress({ done: 0, total: files.length });
-        const form = new FormData();
-        files.forEach((file) => form.append('files', file));
-        form.append('case_name', caseName.trim() || `DICOM病例 · ${new Date().toLocaleString('zh-CN')}`);
-        form.append('privacy_acknowledged', 'true');
-        const response = await fetch(`${apiBaseUrl}/api/analyze/dicom-series`, { method: 'POST', body: form, credentials: 'include' });
-        if (response.status === 401) { window.location.replace(`/auth?returnTo=${encodeURIComponent('/analysis')}`); return; }
-        if (!response.ok) throw new Error(await responseMessage(response, 'DICOM序列分析失败'));
-        const series = await response.json() as SeriesResult;
-        const representativeIndex = series.items.findIndex((item) => item.task_id === series.representative_slice.task_id);
-        setSeriesResult(series); setSeriesHistory((current) => [series, ...current.filter((item) => item.series_id !== series.series_id)]);
-        setResults(series.items); setActiveResult(representativeIndex >= 0 ? representativeIndex : 0); setViewMode('image');
-        setProgress({ done: files.length, total: files.length });
-        if (series.failures.length) setError(series.failures.map((failure) => `${failure.file_name}：${failure.detail}`).join('；'));
-        return;
+      if (uploadMode === 'dicom' && (!files.length || !dicomAcknowledged)) throw new Error('请选择DICOM文件并确认数据授权与像素隐私复核要求');
+      const form = new FormData();
+      if (files.length) files.forEach(file => form.append('files', file));
+      else {
+        const sample = await fetch(samples[sampleIndex].image);
+        if (!sample.ok) throw new Error('示例影像无法读取');
+        form.append('files', await sample.blob(), `${samples[sampleIndex].key}.png`);
       }
-      let queue = files;
-      if (!queue.length) {
-        const sample = samples[sampleIndex];
-        const response = await fetch(sample.image);
-        if (!response.ok) throw new Error('无法读取示例影像');
-        queue = [new File([await response.blob()], `${sample.key}.png`, { type: 'image/png' })];
-      }
-      setProgress({ done: 0, total: queue.length });
-      if (queue.length > 1) {
-        const form = new FormData();
-        queue.forEach((file) => form.append('files', file));
-        form.append('case_name', caseName.trim() || `CT病例 · ${new Date().toLocaleString('zh-CN')}`);
-        const response = await fetch(`${apiBaseUrl}/api/analyze/series`, { method: 'POST', body: form, credentials: 'include' });
-        if (response.status === 401) { window.location.replace(`/auth?returnTo=${encodeURIComponent('/analysis')}`); return; }
-        if (!response.ok) throw new Error(await responseMessage(response, '病例序列分析失败'));
-        const series = await response.json() as SeriesResult;
-        const representativeIndex = series.items.findIndex((item) => item.task_id === series.representative_slice.task_id);
-        setSeriesResult(series); setSeriesHistory((current) => [series, ...current.filter((item) => item.series_id !== series.series_id)]); setResults(series.items); setActiveResult(representativeIndex >= 0 ? representativeIndex : 0); setViewMode('image'); setProgress({ done: queue.length, total: queue.length });
-        if (series.failures.length) setError(series.failures.map((failure) => `${failure.file_name}：${failure.detail}`).join('；'));
-      } else {
-        const form = new FormData(); form.append('file', queue[0]);
-        const response = await fetch(`${apiBaseUrl}/api/analyze`, { method: 'POST', body: form, credentials: 'include' });
-        if (response.status === 401) { window.location.replace(`/auth?returnTo=${encodeURIComponent('/analysis')}`); return; }
-        if (!response.ok) throw new Error(await responseMessage(response, '分析失败'));
-        setResults([await response.json() as AnalysisResult]); setViewMode('image'); setProgress({ done: 1, total: 1 });
-      }
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'CT分析失败'); }
-    finally { setRunning(false); }
+      form.append('mode', uploadMode);
+      form.append('case_name', caseName.trim() || (files.length ? '影像分析任务' : samples[sampleIndex].label));
+      form.append('privacy_acknowledged', String(dicomAcknowledged));
+      const response = await fetch(`${apiBaseUrl}/api/analysis-jobs`, { method: 'POST', body: form, credentials: 'include' });
+      if (!response.ok) throw new Error(await responseMessage(response, '任务提交失败，请检查本地服务'));
+      queue.accept(await response.json());
+    } catch (reason) { setError(reason instanceof Error ? reason.message : '任务提交失败'); setRunning(false); }
   };
 
   const generateExplanation = async (item: AnalysisResult, seriesMode = false) => {
@@ -268,33 +260,32 @@ export default function CtAnalysisWorkspace() {
 
     <section className="analysis-heading"><div><span>LOCAL FIVE-FOLD RESEARCH INFERENCE</span><h1>肺部CT影像分析</h1><p>当前模型延续最初的五折ResNet18四分类架构，但权重为审计后重新训练的研究版本。输出只表示闭集内部排序，不是癌细胞形态识别、病理诊断或患癌概率。</p></div><div><i /> 研究模型已连接<strong>5 / 5 folds</strong></div></section>
 
+    <AnalysisQueuePanel queue={queue} />
     <section className="analysis-workspace">
       <aside className="analysis-intake">
         <div className="analysis-section-title"><span>01 · IMAGE INTAKE</span><h2>选择待分析影像</h2></div>
-        <div className="analysis-upload-tabs"><button className={uploadMode === 'image' ? 'active' : ''} onClick={() => changeUploadMode('image')}>普通图片</button><button className={uploadMode === 'dicom' ? 'active' : ''} onClick={() => changeUploadMode('dicom')}>DICOM序列</button></div>
-        {uploadMode === 'image' ? <label className="analysis-upload"><input aria-label="上传肺部CT影像" type="file" multiple accept=".png,.jpg,.jpeg,.bmp,.tif,.tiff,image/png,image/jpeg,image/bmp,image/tiff" onChange={(event) => selectFiles(event.target.files, 'image')} /><i>＋</i><strong>上传或批量选择CT图片</strong><small>PNG / JPG / BMP / TIFF · 单张20MB以内</small></label> : <label className="analysis-upload analysis-upload-dicom"><input aria-label="上传DICOM序列" type="file" multiple accept=".dcm,application/dicom" onChange={(event) => selectFiles(event.target.files, 'dicom')} /><i>DCM</i><strong>选择同一个CT序列</strong><small>单帧CT DICOM · 最多512个 · 总计256MB</small></label>}
+        <div className="analysis-upload-tabs"><button className={uploadMode === 'image' ? 'active' : ''} disabled={running} onClick={() => changeUploadMode('image')}>普通图片</button><button className={uploadMode === 'dicom' ? 'active' : ''} disabled={running} onClick={() => changeUploadMode('dicom')}>DICOM序列</button></div>
+        {uploadMode === 'image' ? <label className="analysis-upload"><input aria-label="上传肺部CT影像" disabled={running} type="file" multiple accept=".png,.jpg,.jpeg,.bmp,.tif,.tiff,image/png,image/jpeg,image/bmp,image/tiff" onChange={(event) => selectFiles(event.target.files, 'image')} /><i>＋</i><strong>上传或批量选择CT图片</strong><small>PNG / JPG / BMP / TIFF · 单张20MB以内</small></label> : <label className="analysis-upload analysis-upload-dicom"><input aria-label="上传DICOM序列" disabled={running} type="file" multiple accept=".dcm,application/dicom" onChange={(event) => selectFiles(event.target.files, 'dicom')} /><i>DCM</i><strong>选择同一个CT序列</strong><small>单帧CT DICOM · 最多512个 · 总计256MB</small></label>}
         {(files.length > 1 || uploadMode === 'dicom') && <label className="analysis-case-name"><span>病例名称（请勿填写患者身份信息）</span><input value={caseName} maxLength={120} placeholder="例如：匿名病例 001" onChange={(event) => setCaseName(event.target.value)} /></label>}
         {!!files.length && <div className="analysis-file-list"><span>已选择 {files.length} {uploadMode === 'dicom' ? '个文件' : '张'}</span>{files.slice(0, 12).map((file, index) => <p key={`${file.name}-${index}`}><b>{String(index + 1).padStart(2, '0')}</b><span>{uploadMode === 'dicom' ? `DICOM文件 ${String(index + 1).padStart(4, '0')}` : file.name}</span><small>{(file.size / 1024 / 1024).toFixed(2)} MB</small></p>)}{files.length > 12 && <small className="analysis-file-more">其余 {files.length - 12} 个文件已选择</small>}</div>}
         {uploadMode === 'dicom' && <label className="analysis-dicom-consent"><input type="checkbox" checked={dicomAcknowledged} onChange={(event) => setDicomAcknowledged(event.target.checked)} /><span>我确认数据已获授权并仅在本机处理；系统不保存原始DICOM或身份字段值，但像素区域仍需人工隐私复核。</span></label>}
-        {uploadMode === 'image' && <div className="analysis-samples"><span>或使用内置示例</span>{samples.map((sample, index) => <button key={sample.key} className={!files.length && sampleIndex === index ? 'active' : ''} onClick={() => selectSample(index)}><i>{String(index + 1).padStart(2, '0')}</i><span>{sample.label}</span></button>)}</div>}
-        <button className="analysis-run" disabled={running} onClick={() => void runAnalysis()}>{running ? `分析中 ${progress.done}/${progress.total}` : '运行本地五折分析 →'}</button>
-        {progress.total > 1 && <div className="analysis-progress"><i><em style={{ width: `${progress.done / progress.total * 100}%` }} /></i><span>{progress.done} / {progress.total}</span></div>}
+        {uploadMode === 'image' && <div className="analysis-samples"><span>或使用内置示例</span>{samples.map((sample, index) => <button key={sample.key} className={!files.length && sampleIndex === index ? 'active' : ''} disabled={running} onClick={() => selectSample(index)}><i>{String(index + 1).padStart(2, '0')}</i><span>{sample.label}</span></button>)}</div>}
+        <button className="analysis-run" disabled={running} onClick={() => void runAnalysis()}>{running ? `分析中 ${queue.job?.completed || 0}/${queue.job?.total || files.length || 1}` : '运行本地五折分析 →'}</button>
         {error && <div className="analysis-error">{error}</div>}
         <section className="analysis-history">
           <header><div><span>CASE HISTORY</span><h3>病例分析记录</h3></div><b>{seriesHistory.length}</b></header>
           {historyLoading && !seriesHistory.length && <p>正在读取病例记录…</p>}
           {!historyLoading && !seriesHistory.length && <p>完成一次多切片分析后，病例会显示在这里。</p>}
           <div>{seriesHistory.map((series) => <article key={series.series_id} className={seriesResult?.series_id === series.series_id ? 'active' : ''}>
-            <button type="button" onClick={() => void openStoredSeries(series.series_id)}><strong>{series.case_name}</strong><span>病例级结论已阻断 · 内部最高排序 {series.prediction.top_class_cn}</span><small>{series.summary.analyzed_count}张 · {new Date(series.created_at).toLocaleString('zh-CN')}</small></button>
+            <button type="button" disabled={running} onClick={() => void openStoredSeries(series.series_id)}><strong>{series.case_name}</strong><span>病例级结论已阻断 · 内部最高排序 {series.prediction.top_class_cn}</span><small>{series.summary.analyzed_count}张 · {new Date(series.created_at).toLocaleString('zh-CN')}</small></button>
             <a href={`${apiBaseUrl}/api/series/${encodeURIComponent(series.series_id)}/report`} title="下载病例报告">↓</a>
           </article>)}</div>
         </section>
       </aside>
 
       <section className="analysis-viewer">
-        <header><div><span>IMAGE VIEWER</span><strong>{result?.input.file_name || (uploadMode === 'dicom' ? `${files.length || 0} 个DICOM文件待解析` : files[0]?.name || samples[sampleIndex].label)}</strong></div>{result ? <div className="analysis-view-controls"><button className={viewMode === 'image' ? 'active' : ''} onClick={() => setViewMode('image')}>{seriesResult?.input_mode === 'DICOM' ? '派生切片' : '原始切片'}</button><button className={viewMode === 'attention' ? 'active' : ''} disabled={!result.attention.available} onClick={() => setViewMode('attention')}>Grad-CAM</button></div> : <small>{uploadMode === 'dicom' ? '等待本地解析与肺窗转换' : '二维匿名影像'}</small>}</header>
-        <div className="analysis-image">{preview ? <img src={preview} alt={viewMode === 'attention' ? '代表切片Grad-CAM注意力图' : '待分析肺部CT影像'} /> : <div className="analysis-dicom-placeholder"><i>DCM</i><strong>DICOM序列不会在分析前预览</strong><span>运行后只显示本机生成的匿名肺窗派生切片</span></div>}<span>{viewMode === 'attention' ? 'GRAD-CAM' : 'AXIAL VIEW'}</span><small>LOCAL PROCESSING</small></div>
-        <footer><span><i /> 影像仅发送至本机8001推理服务</span><span>不上传至大模型服务商</span></footer>
+        {preview ? <ImageViewer src={preview} attentionSrc={result?.attention.available ? `${apiBaseUrl}/api/tasks/${encodeURIComponent(result.task_id)}/attention` : undefined} taskId={result?.task_id} title={result?.input.file_name || files[0]?.name || samples[sampleIndex].label} sliceIndex={activeResult} sliceCount={Math.max(results.length, 1)} onSliceChange={setActiveResult} /> : <div className="analysis-dicom-placeholder"><strong>DICOM 等待本地解析</strong><p>完成肺窗转换后可浏览已分析切片；原始DICOM不落库。</p></div>}
+        <footer><span>影像由本地服务处理 · DICOM 显示派生切片</span><span>不上传至大模型服务商</span></footer>
       </section>
 
       <aside className="analysis-result">
@@ -313,7 +304,7 @@ export default function CtAnalysisWorkspace() {
             {!seriesExplanation && <button className="analysis-explain" disabled={explainingTask === seriesResult.representative_slice.task_id} onClick={() => { const representative = results.find((item) => item.task_id === seriesResult.representative_slice.task_id); if (representative) void generateExplanation(representative, true); }}>{explainingTask === seriesResult.representative_slice.task_id ? '正在生成模型说明…' : '生成聚合输出与局限说明'}</button>}
             {seriesExplanation && <section className="analysis-explanation"><header><span>CASE RATIONALE</span><b>{seriesExplanation.support_level}</b></header><p>{seriesExplanation.answer}</p>{!!seriesExplanation.evidence?.length && <div>{seriesExplanation.evidence.map((citation) => <span key={citation.citation_id} title={citation.excerpt}>{citation.citation_id} · {citation.title}{citation.verified !== false ? ' ✓' : ''}</span>)}</div>}{!!seriesExplanation.uncertainty?.length && <small>不确定性：{seriesExplanation.uncertainty.join('；')}</small>}</section>}
           </section>}
-          {results.length > 1 && <select aria-label="切换分析结果" value={activeResult} onChange={(event) => { setActiveResult(Number(event.target.value)); setViewMode('image'); }}>{results.map((item, index) => <option key={item.task_id} value={index}>{item.input.file_name}</option>)}</select>}
+          {results.length > 1 && <select aria-label="切换分析结果" value={activeResult} onChange={(event) => { setActiveResult(Number(event.target.value));  }}>{results.map((item, index) => <option key={item.task_id} value={index}>{item.input.file_name}</option>)}</select>}
           {seriesResult && <div className="analysis-slice-label">当前切片结果</div>}
           <div className="analysis-primary"><span>内部最高排序（非诊断）</span><strong>{result.prediction.top_class_cn}</strong><b>{((result.prediction.probabilities[result.prediction.top_class] || 0) * 100).toFixed(1)}%</b><small>{result.prediction.decision === 'RESEARCH_RANKING' ? '达到内部研究门槛' : '已触发拒判'} · {result.task_id}</small></div>
           <div className="analysis-probabilities">{probabilities.map(([key, value]) => <div key={key}><span>{classLabels[key] || key}<b>{(value * 100).toFixed(1)}%</b></span><i><em style={{ width: `${value * 100}%` }} /></i></div>)}</div>

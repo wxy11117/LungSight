@@ -14,6 +14,8 @@ import json
 import math
 import os
 import sqlite3
+import sys
+import threading
 import time
 import uuid
 import zipfile
@@ -32,7 +34,7 @@ from PIL import Image, ImageFilter, ImageOps, ImageStat, UnidentifiedImageError
 from pydantic import BaseModel, Field, StrictBool, model_validator
 
 from knowledge import (
-    build_knowledge_base,
+    build_bundled_knowledge_base,
     evidence_history,
     initialize_knowledge_schema,
     knowledge_sources,
@@ -96,6 +98,11 @@ from rag_evaluation import (
     run_rag_evaluation,
 )
 from dicom_series import DicomImportError, prepare_dicom_series
+from starlette.concurrency import run_in_threadpool
+from analysis_jobs import JobCancelled
+from image_geometry import resize_pad_geometry, restore_attention_map
+
+MODEL_LOCK = threading.RLock()
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -933,13 +940,13 @@ class ModelRuntime:
             def __call__(self, value: Image.Image) -> Image.Image:
                 size = 224
                 width, height = value.size
-                scale = min(size / width, size / height)
+                left, top, resized_width, resized_height = resize_pad_geometry(width, height, size)
                 resized = value.resize(
-                    (max(1, round(width * scale)), max(1, round(height * scale))),
+                    (resized_width, resized_height),
                     Image.Resampling.BILINEAR,
                 )
                 canvas = Image.new("RGB", (size, size), (0, 0, 0))
-                canvas.paste(resized, ((size - resized.width) // 2, (size - resized.height) // 2))
+                canvas.paste(resized, (left, top))
                 return canvas
 
         pipeline = transforms.Compose(
@@ -1081,9 +1088,7 @@ class ModelRuntime:
                     raise RuntimeError("无法取得Grad-CAM中间特征")
                 weights = gradient.mean(dim=(2, 3), keepdim=True)
                 cam = torch.relu((weights * activation).sum(dim=1, keepdim=True))
-                cam = functional.interpolate(
-                    cam, size=(original.height, original.width), mode="bilinear", align_corners=False
-                )
+                cam = restore_attention_map(cam, original.width, original.height)
                 cam_min, cam_max = cam.amin(), cam.amax()
                 cam = (cam - cam_min) / (cam_max - cam_min + 1e-8)
                 fold_maps.append(cam.detach().cpu())
@@ -1114,12 +1119,17 @@ async def lifespan(_: FastAPI):
     with database_connection() as connection:
         source_count = connection.execute("SELECT COUNT(*) FROM evidence_sources").fetchone()[0]
     if source_count == 0:
-        build_knowledge_base(DATABASE_PATH, WORKSPACE_ROOT)
+        build_bundled_knowledge_base(DATABASE_PATH, BASE_DIR.parent)
     seed_medical_library(DATABASE_PATH)
     apply_library_presentation(DATABASE_PATH)
     runtime.load()
-    yield
-    runtime.models.clear()
+    workbench.queue().start()
+    try:
+        yield
+    finally:
+        workbench.queue().stop()
+        if not workbench.queue().thread.is_alive():
+            runtime.models.clear()
 
 
 app = FastAPI(title="LungSight Local Inference API", version="1.0.0", lifespan=lifespan)
@@ -1712,6 +1722,11 @@ async def analyze(
     if len(payload) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="图片超过20MB限制")
 
+    return await run_in_threadpool(analyze_image_payload, payload, file.filename or "upload", user)
+
+
+def analyze_image_payload(payload: bytes, filename: str, user: dict, *, task_id=None, progress=lambda stage: None) -> dict:
+    suffix = Path(filename).suffix.lower()
     try:
         with Image.open(io.BytesIO(payload)) as opened:
             opened.verify()
@@ -1725,10 +1740,16 @@ async def analyze(
         raise HTTPException(status_code=400, detail="图片尺寸过小，无法进入当前模型")
 
     image_sha256 = hashlib.sha256(payload).hexdigest()
+    progress("QUALITY")
     quality_control = assess_image_quality(image, image_sha256)
     try:
-        prediction = runtime.predict(image)
-        attention_image, attention_ms = runtime.generate_attention_map(image, prediction["top_index"])
+        progress("INFERENCE")
+        with MODEL_LOCK:
+            prediction = runtime.predict(image)
+            progress("ATTENTION")
+            attention_image, attention_ms = runtime.generate_attention_map(image, prediction["top_index"])
+    except JobCancelled:
+        raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"模型推理失败：{exc}") from exc
     priority = assign_review_priority(quality_control, prediction)
@@ -1754,11 +1775,11 @@ async def analyze(
 
     created_at = datetime.now(timezone.utc).isoformat()
     result = {
-        "task_id": f"CT-{uuid.uuid4().hex[:10].upper()}",
+        "task_id": task_id or f"CT-{uuid.uuid4().hex[:10].upper()}",
         "created_at": created_at,
         "status": "WAITING_FOR_REVIEW",
         "input": {
-            "file_name": Path(file.filename or "upload").name,
+            "file_name": Path(filename).name,
             "format": suffix.removeprefix(".").upper(),
             "sha256": image_sha256,
             "image_size": [width, height],
@@ -1822,6 +1843,7 @@ async def analyze(
         },
         "disclaimer": "结果来自弱标签研究原型，仅用于科研与辅助分析，不构成临床诊断、分期、处方或治疗建议。",
     }
+    progress("SAVING")
     try:
         persist_task(result, payload, suffix, attention_image, user["user_id"])
     except Exception as exc:
@@ -1930,50 +1952,7 @@ async def analyze_dicom_series(
         results, case_name=case_name, failures=failures,
         case_aggregation_validated=False, input_mode="DICOM",
     )
-    dicom_summary["analyzed_slice_count"] = len(results)
-    result["dicom"] = dicom_summary
-    result["summary"]["uploaded_count"] = dicom_summary["input_file_count"]
-    result["summary"]["analyzed_count"] = len(results)
-    result["summary"]["failed_count"] = len(failures)
-    warnings = result["reliability"]["warnings"]
-    warnings.extend(dicom_summary.get("warnings", []))
-    lung_selection = dicom_summary.get("lung_selection", {})
-    if lung_selection.get("excluded_edge_slice_count", 0):
-        warnings.append(
-            f"肺野覆盖筛选排除了{lung_selection['excluded_edge_slice_count']}层边缘低覆盖切片"
-        )
-    if dicom_summary["subsampled"]:
-        warnings.append(
-            f"已从{dicom_summary['readable_slice_count']}层中等距抽取最多{DICOM_ANALYSIS_SLICES}层进入原型分析"
-        )
-    privacy = dicom_summary["privacy"]
-    if privacy["direct_identifier_fields_detected"]:
-        warnings.append("检测到DICOM身份字段；字段值未保存，像素隐私仍需人工复核")
-    if privacy["burned_in_annotation"] != ["NO"]:
-        warnings.append("部分DICOM未明确声明无烧录文字，需人工检查像素区域")
-    dicom_blockers: list[str] = []
-    if lung_selection:
-        gate = result["quality_gate"]
-        gate["thresholds"]["minimum_dicom_lung_region_slices"] = DICOM_MIN_LUNG_REGION_SLICES
-        gate["metrics"]["dicom_lung_region_slices"] = int(lung_selection.get("eligible_slice_count", 0))
-        if lung_selection.get("status") != "APPLIED":
-            dicom_blockers.append("无法稳定定位连续肺野有效区间")
-        if int(lung_selection.get("eligible_slice_count", 0)) < DICOM_MIN_LUNG_REGION_SLICES:
-            dicom_blockers.append(f"肺野有效区间少于{DICOM_MIN_LUNG_REGION_SLICES}层")
-    if dicom_blockers:
-        gate = result["quality_gate"]
-        for reason in dicom_blockers:
-            if reason not in gate["reasons"]:
-                gate["reasons"].append(reason)
-                warnings.append(f"{reason}，病例级结果证据不足")
-        gate["status"] = "BLOCKED"
-        result["prediction"]["decision"] = "INDETERMINATE"
-    result["reliability"]["level"] = "REVIEW_REQUIRED"
-    result["reliability"]["rule_version"] = "dicom-series-weighted-v1"
-    result["disclaimer"] = (
-        "DICOM已在本机转换为固定肺窗派生切片；原始DICOM及身份字段值未保存。"
-        "该弱标签研究原型不是诊断设备，像素隐私和全部结果均须由专业人员复核。"
-    )
+    complete_dicom_result(result, dicom_summary)
     try:
         persist_series(result, user["user_id"])
     except Exception as exc:
@@ -2034,8 +2013,13 @@ def download_series_report(series_id: str, user: dict = Depends(require_user)):
     if attention_data:
         images_html += '<figure><img src="data:image/png;base64,' + attention_data + '" alt="代表切片Grad-CAM"><figcaption>代表切片五折平均 Grad-CAM（非病灶分割）</figcaption></figure>'
 
+    annotations_html = ''.join(
+        f'<section><h3>{html.escape(item["input"]["file_name"])}</h3>{notes}</section>'
+        for item in series['items']
+        if (notes := workbench.annotation_report(item['task_id'], user['user_id']))
+    )
     evidence_queries = [
-        item for item in evidence_history(DATABASE_PATH, representative_id)
+        item for task in series['items'] for item in evidence_history(DATABASE_PATH, task['task_id'])
         if item.get("include_in_report")
     ]
     evidence_parts: list[str] = []
@@ -2088,7 +2072,7 @@ def download_series_report(series_id: str, user: dict = Depends(require_user)):
 <table>{probability_rows}</table><p class="warning">病例级提示：{html.escape(warning_text)}</p>
 <h2>代表切片与注意力图</h2><div class="images">{images_html}</div>
 <h2>逐切片结果与复核状态</h2><table><tr><th>#</th><th>文件</th><th>最高类别</th><th>概率</th><th>五折一致性</th><th>质控</th><th>复核状态</th></tr>{slice_rows}</table>
-<h2>病例AI循证解释</h2>{evidence_html}
+<h2>病例AI循证解释</h2>{annotations_html}{evidence_html}
 <p class="notice">{html.escape(series['disclaimer'])} 所有切片结果及病例级聚合均须由具备资质的专业人员结合完整DICOM序列、临床信息和病理结果复核。</p></body></html>"""
     return Response(
         content=public_text(document),
@@ -2234,9 +2218,12 @@ def update_task_library_state(
 @app.delete("/api/tasks/{task_id}")
 def permanently_delete_task(task_id: str, user: dict = Depends(require_user)) -> dict:
     row = get_task_row(task_id, user["user_id"])
+    workbench.queue()  # Ensure migration tables exist for older installations.
     image_path = resolve_managed_media(row["image_path"], UPLOADS_DIR)
     attention_path = resolve_managed_media(row["attention_path"], ATTENTION_DIR)
     with database_connection() as connection:
+        connection.execute('BEGIN IMMEDIATE')
+        workbench.forget_task(connection, task_id)
         series_ids = [
             item["series_id"] for item in connection.execute(
                 "SELECT series_id FROM analysis_series_items WHERE task_id = ?", (task_id,)
@@ -2653,12 +2640,13 @@ def download_report(task_id: str, user: dict = Depends(require_user)):
             f"{decision_labels[review['decision']]}{corrected}；复核人：{html.escape(review['reviewer_name'])}；"
             f"意见：{html.escape(review.get('comment') or '未填写')}"
         )
+    annotations_html = workbench.annotation_report(task_id, user["user_id"])
     document = f"""<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><title>{html.escape(task_id)} 分析报告</title>
 <style>body{{max-width:900px;margin:40px auto;padding:0 24px;font:14px/1.7 Arial,"Microsoft YaHei",sans-serif;color:#17272b}}h1{{font-size:28px}}h2{{margin-top:28px;font-size:17px;border-bottom:1px solid #dce7e8;padding-bottom:8px}}table{{width:100%;border-collapse:collapse}}td{{padding:9px;border-bottom:1px solid #edf2f2}}td:last-child{{text-align:right;font-family:monospace}}.meta{{color:#587076}}.warning{{padding:12px;background:#fff8e8;border-left:3px solid #d9a834}}.notice{{margin-top:35px;padding:14px;background:#eef8f7;color:#496466}}.images{{display:grid;grid-template-columns:1fr 1fr;gap:14px}}figure{{margin:0}}img{{width:100%;max-height:390px;object-fit:contain;background:#071015}}figcaption{{margin-top:5px;color:#587076;font-size:12px}}.evidence{{margin:12px 0;padding:14px;border:1px solid #dce7e8;border-radius:8px}}.evidence h3{{margin:0 0 8px;font-size:15px}}.evidence p{{margin:0}}.evidence li,.evidence small{{color:#587076;font-size:12px}}@media print{{body{{margin:0}}}}</style></head>
 <body><h1>LungSight 二维 CT 辅助分析报告</h1><p class="meta">任务编号：{html.escape(task_id)}<br>生成时间：{html.escape(task['updated_at'])}<br>任务状态：{html.escape(task['status'])}</p>
 <h2>影像与模型</h2><p>文件：{html.escape(task['input']['file_name'])}<br>SHA-256：{html.escape(task['input']['sha256'])}<br>尺寸：{task['input']['image_size'][0]} × {task['input']['image_size'][1]}<br>模型：{html.escape(task['model']['name'])} / {html.escape(task['model']['version'])}</p>
-<div class="images">{images_html}</div><h2>质控与优先级</h2><p>质控状态：<strong>{html.escape(task['quality_control']['status'])}</strong><br>复核优先级：<strong>{html.escape(priority['label_cn'])}</strong><br>亮度均值：{metrics.get('mean_luminance', '—')}；对比度：{metrics.get('contrast_std', '—')}；边缘方差：{metrics.get('edge_variance', '—')}</p><p class="warning">质控提示：{html.escape(qc_warnings_text)}</p>
+<div class="images">{images_html}</div>{annotations_html}<h2>质控与优先级</h2><p>质控状态：<strong>{html.escape(task['quality_control']['status'])}</strong><br>复核优先级：<strong>{html.escape(priority['label_cn'])}</strong><br>亮度均值：{metrics.get('mean_luminance', '—')}；对比度：{metrics.get('contrast_std', '—')}；边缘方差：{metrics.get('edge_variance', '—')}</p><p class="warning">质控提示：{html.escape(qc_warnings_text)}</p>
 <h2>模型内部研究排序</h2><p>内部最高排序（非诊断）：<strong>{html.escape(task['prediction']['top_class_cn'])}</strong><br>五折一致性：{html.escape(task['reliability']['fold_agreement'])}<br>可靠性：{html.escape(task['reliability']['level'])}</p><table>{probability_rows}</table>
 <p class="warning">可靠性提示：{html.escape(warnings_text)}</p><h2>医生复核</h2><p>{review_text}</p><h2>循证协作记录</h2>{evidence_html}<h2>审计记录</h2><table><tr><td>时间</td><td>事件</td><td>执行者</td><td>状态</td></tr>{audit_html}</table>
 <p class="notice">{html.escape(task['disclaimer'])}</p></body></html>"""
@@ -2667,3 +2655,55 @@ def download_report(task_id: str, user: dict = Depends(require_user)):
         media_type="text/html; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{task_id}-report.html"'},
     )
+
+
+def complete_dicom_result(result, dicom_summary):
+    dicom_summary["analyzed_slice_count"] = len(result["items"])
+    result["dicom"] = dicom_summary
+    result["summary"]["uploaded_count"] = dicom_summary["input_file_count"]
+    result["summary"]["analyzed_count"] = len(result["items"])
+    result["summary"]["failed_count"] = len(result["failures"])
+    warnings = result["reliability"]["warnings"]
+    warnings.extend(dicom_summary.get("warnings", []))
+    lung_selection = dicom_summary.get("lung_selection", {})
+    if lung_selection.get("excluded_edge_slice_count", 0):
+        warnings.append(
+            f"肺野覆盖筛选排除了{lung_selection['excluded_edge_slice_count']}层边缘低覆盖切片"
+        )
+    if dicom_summary["subsampled"]:
+        warnings.append(
+            f"已从{dicom_summary['readable_slice_count']}层中等距抽取最多{DICOM_ANALYSIS_SLICES}层进入原型分析"
+        )
+    privacy = dicom_summary["privacy"]
+    if privacy["direct_identifier_fields_detected"]:
+        warnings.append("检测到DICOM身份字段；字段值未保存，像素隐私仍需人工复核")
+    if privacy["burned_in_annotation"] != ["NO"]:
+        warnings.append("部分DICOM未明确声明无烧录文字，需人工检查像素区域")
+    dicom_blockers: list[str] = []
+    if lung_selection:
+        gate = result["quality_gate"]
+        gate["thresholds"]["minimum_dicom_lung_region_slices"] = DICOM_MIN_LUNG_REGION_SLICES
+        gate["metrics"]["dicom_lung_region_slices"] = int(lung_selection.get("eligible_slice_count", 0))
+        if lung_selection.get("status") != "APPLIED":
+            dicom_blockers.append("无法稳定定位连续肺野有效区间")
+        if int(lung_selection.get("eligible_slice_count", 0)) < DICOM_MIN_LUNG_REGION_SLICES:
+            dicom_blockers.append(f"肺野有效区间少于{DICOM_MIN_LUNG_REGION_SLICES}层")
+    if dicom_blockers:
+        gate = result["quality_gate"]
+        for reason in dicom_blockers:
+            if reason not in gate["reasons"]:
+                gate["reasons"].append(reason)
+                warnings.append(f"{reason}，病例级结果证据不足")
+        gate["status"] = "BLOCKED"
+        result["prediction"]["decision"] = "INDETERMINATE"
+    result["reliability"]["level"] = "REVIEW_REQUIRED"
+    result["reliability"]["rule_version"] = "dicom-series-weighted-v1"
+    result["disclaimer"] = (
+        "DICOM已在本机转换为固定肺窗派生切片；原始DICOM及身份字段值未保存。"
+        "该弱标签研究原型不是诊断设备，像素隐私和全部结果均须由专业人员复核。"
+    )
+    return result
+
+
+from workbench import Workbench
+workbench = Workbench(sys.modules[__name__])

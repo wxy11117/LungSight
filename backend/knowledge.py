@@ -259,6 +259,28 @@ def _upsert_source(
     )
 
 
+def build_bundled_knowledge_base(database_path: Path, project_root: Path) -> dict:
+    """Bootstrap a clean checkout/install using only documents shipped with it."""
+    initialize_knowledge_schema(database_path)
+    docs = project_root / 'documentation'
+    if not docs.is_dir():
+        docs = project_root / 'docs'
+    with connect(database_path) as connection:
+        for name in ['MODEL_CARD_RESEARCH_2026-09-03.md', 'MODEL_PROMOTION_GATES.md']:
+            path = docs / name
+            if not path.is_file():
+                continue
+            payload = path.read_bytes()
+            text = payload.decode('utf-8')
+            _upsert_source(connection, title=text.splitlines()[0].lstrip('# '),
+                           source_type='MODEL_NOTE', version='bundled-2026-09-03', publication_date=None,
+                           authority='LungSight model documentation', scope='研究模型说明与适用性边界',
+                           locator=path.relative_to(project_root).as_posix(), payload=payload,
+                           chunks=[(section, None, content) for section, content in _chunk_text(text)])
+        return {'sources': connection.execute('SELECT COUNT(*) FROM evidence_sources').fetchone()[0],
+                'chunks': connection.execute('SELECT COUNT(*) FROM evidence_chunks').fetchone()[0]}
+
+
 def build_knowledge_base(
     database_path: Path,
     workspace_root: Path,

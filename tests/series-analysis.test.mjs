@@ -3,10 +3,11 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 const page = readFileSync(new URL('../app/analysis/page.tsx', import.meta.url), 'utf8');
+const viewer = readFileSync(new URL('../app/components/image-viewer.tsx', import.meta.url), 'utf8');
 const styles = readFileSync(new URL('../app/globals.css', import.meta.url), 'utf8');
 
-test('multiple CT images use the case-series endpoint and render aggregate evidence', () => {
-  assert.match(page, /\/api\/analyze\/series/);
+test('multiple CT images use the durable queue and render aggregate evidence', () => {
+  assert.match(page, /\/api\/analysis-jobs/);
   assert.match(page, /form\.append\('files', file\)/);
   assert.match(page, /病例综合结果/);
   assert.match(page, /切片一致率/);
@@ -25,8 +26,8 @@ test('saved cases can be reopened, inspected and exported', () => {
   assert.match(page, /\/api\/series\?limit=20/);
   assert.match(page, /openStoredSeries/);
   assert.match(page, /病例分析记录/);
-  assert.match(page, /viewMode === 'attention'/);
-  assert.match(page, /原始切片/);
+  assert.match(page, /<ImageViewer/);
+  assert.match(viewer, /Grad-CAM 叠加/);
   assert.match(page, /下载病例报告/);
   assert.match(page, /\/report/);
   assert.match(styles, /\.analysis-history/);
@@ -35,7 +36,7 @@ test('saved cases can be reopened, inspected and exported', () => {
 
 test('DICOM series import is explicit, local and privacy gated', () => {
   assert.match(page, /DICOM序列/);
-  assert.match(page, /\/api\/analyze\/dicom-series/);
+  assert.match(page, /form\.append\('mode', uploadMode\)/);
   assert.match(page, /privacy_acknowledged/);
   assert.match(page, /原始DICOM或身份字段值/);
   assert.match(page, /像素隐私仍需人工复核/);

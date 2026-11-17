@@ -26,5 +26,6 @@ test('CT analysis can request a grounded explanation without sending the image t
   assert.ok(page.includes('不得把类别排序称为病理诊断'));
   assert.ok(page.includes('不要给出分期或治疗建议'));
   assert.ok(page.includes('include_in_report: true'));
-  assert.ok(page.includes('影像仅发送至本机8001推理服务'));
+  assert.ok(page.includes('影像由本地服务处理'));
+  assert.ok(page.includes("form.append('mode', uploadMode)"));
 });

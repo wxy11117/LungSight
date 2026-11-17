@@ -55,7 +55,9 @@ test('case library and unified case workspace preserve the full task flow', () =
   assert.match(workspace, /医生复核/);
   assert.match(workspace, /审计记录/);
   assert.match(workspace, /apiBaseUrl}\/api\/tasks/);
-  assert.match(workspace, /'attention' : 'image'/);
+  assert.match(workspace, /<ImageViewer/);
+  assert.match(workspace, /attentionSrc=/);
+  assert.match(workspace, /<CaseReviewForm/);
 });
 
 test('long-running answers can stop and drafts are restored locally', () => {

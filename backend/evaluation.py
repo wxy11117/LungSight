@@ -6,6 +6,7 @@ import json
 import re
 import sqlite3
 import uuid
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -22,10 +23,18 @@ CATEGORY_LABELS = {
 }
 
 
-def connect(database_path: Path) -> sqlite3.Connection:
+@contextmanager
+def connect(database_path: Path):
     connection = sqlite3.connect(database_path, timeout=10)
     connection.row_factory = sqlite3.Row
-    return connection
+    try:
+        yield connection
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
 
 
 def initialize_evaluation_schema(database_path: Path) -> None:

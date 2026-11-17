@@ -25,14 +25,14 @@ def main():
     if build.exists() and not args.resume: raise SystemExit('构建目录已存在，请选择新的版本目录，不覆盖已有包。')
     build.mkdir(exist_ok=True); payload=build/'payload'; payload.mkdir(exist_ok=True)
     appdest=payload/'lung-vision-site'/'backend'
-    modules=['app','auth','agent_service','dicom_series','knowledge','literature','medical_policy','profile_images','public_content','registration','evaluation','rag_evaluation']
+    modules=['analysis_jobs','workbench','image_geometry','app','auth','agent_service','dicom_series','knowledge','literature','medical_policy','profile_images','public_content','registration','evaluation','rag_evaluation']
     for module in modules: copy(backend/(module+'.py'),appdest/(module+'.py'))
     for name in ['schema.sql','model_manifest.json','medical_library.json','evaluation_cases.json','rag_evaluation_cases.json']:
         copy(backend/name,appdest/name)
     copy(HERE/'desktop_backend.py', appdest/'desktop_backend.py')
     copy(project/'config'/'registration-catalog.json', payload/'lung-vision-site'/'config'/'registration-catalog.json')
     for name in ['MODEL_CARD_RESEARCH_2026-09-03.md','MODEL_PROMOTION_GATES.md']:
-        copy(project/'docs'/name,payload/'lung-vision-site'/'docs'/name)
+        copy(project/'documentation'/name,payload/'lung-vision-site'/'docs'/name)
     manifest=json.loads((backend/'model_manifest.json').read_text(encoding='utf-8'))
     assert len(manifest['weights'])==5
     for name,expected in manifest['weights'].items():

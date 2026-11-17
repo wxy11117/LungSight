@@ -120,7 +120,7 @@ export default function AgentWorkspace() {
         const requestedTask = new URLSearchParams(window.location.search).get('task');
         if (requestedTask && taskItems.some((task) => task.task_id === requestedTask)) {
           setLinkedTaskId(requestedTask);
-          setQuestion('请结合当前CT结构化结果、本地资料和通用医学知识，说明模型输出、可靠性、局限性，以及医生需要重点复核的内容，并区分信息来源。');
+          setQuestion(new URLSearchParams(window.location.search).get('focus')?.slice(0, 1000) || '请结合当前CT结构化结果、本地资料和通用医学知识，说明模型输出、可靠性、局限性，以及医生需要重点复核的内容，并区分信息来源。');
         }
       }
       if (usageResponse.ok) setUsage(await usageResponse.json());

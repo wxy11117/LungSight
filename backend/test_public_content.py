@@ -14,7 +14,12 @@ from public_content import ARTICLE_TITLE, apply_library_presentation, pdf_downlo
 
 
 class PublicContentTests(unittest.TestCase):
-    setUp = test_agent.AgentPipelineTests.setUp
+    def setUp(self):
+        test_agent.AgentPipelineTests.setUp(self)
+        # These are presentation tests; production weight loading is unrelated.
+        loader = patch.object(application.runtime, 'load')
+        loader.start()
+        self.addCleanup(loader.stop)
     tearDown = test_agent.AgentPipelineTests.tearDown
 
     def client(self):
@@ -45,12 +50,13 @@ class PublicContentTests(unittest.TestCase):
             self.assertEqual(client.get('/api/evidence/sources/SRC-1/content').status_code, 404)
 
     def test_pdf_filename_uses_article_title_and_bytes_remain_identical(self):
-        # Read-only check against the actual paper. No modified PDF is created.
-        original = application.WORKSPACE_ROOT / (ARTICLE_TITLE + '.pdf')
+        # A self-contained fixture verifies byte preservation without private PDFs.
+        original = self.root / (ARTICLE_TITLE + '.pdf')
+        original.write_bytes(b'%PDF-1.4\n% Synthetic download fixture\n%%EOF')
         with connect(self.database_path) as connection:
             connection.execute("UPDATE evidence_sources SET title=?,locator=?,source_type='PDF' WHERE source_id='SRC-1'",
                                (ARTICLE_TITLE, original.name))
-        with self.client() as client:
+        with patch.object(application, 'WORKSPACE_ROOT', self.root), self.client() as client:
             response = client.get('/api/evidence/sources/SRC-1/content')
         self.assertEqual(response.status_code, 200)
         filename = unquote(response.headers['content-disposition'])
