@@ -1,0 +1,153 @@
+/* Progressive enhancement: the page remains readable without JavaScript. */
+:root {
+  --motion-ease: cubic-bezier(.22, 1, .36, 1);
+}
+
+.site-shell .reveal {
+  opacity: 1;
+  transform: none;
+}
+
+html[data-motion="full"] .site-shell [data-reveal="pending"] {
+  opacity: 0;
+  transform: translateY(22px);
+}
+
+html[data-motion="full"] .site-shell [data-reveal] {
+  transition: opacity .65s var(--motion-ease), transform .65s var(--motion-ease);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.site-shell .page-progress {
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  will-change: transform;
+}
+
+.site-shell .nav-wrap {
+  transition: background .28s ease, border-color .28s ease, box-shadow .28s ease;
+}
+
+.site-shell .nav-wrap.is-scrolled {
+  background: rgba(5, 13, 18, .94);
+  border-color: rgba(126, 235, 222, .22);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, .3);
+}
+
+.site-shell .nav-links a[aria-current="location"],
+.site-shell .nav-more-panel a[aria-current="location"] {
+  color: #c5fff5;
+  background: rgba(78, 233, 214, .1);
+  box-shadow: inset 0 0 0 1px rgba(78, 233, 214, .13);
+}
+
+html[data-motion="full"] .hero-visual .scan-card {
+  transform: perspective(1100px) rotateX(var(--hero-rx, 0deg)) rotateY(var(--hero-ry, 0deg)) rotateZ(1.5deg);
+  transition: transform .6s var(--motion-ease), box-shadow .4s ease;
+}
+
+.site-shell :is(.primary-button, .download-button, .nav-cta) {
+  transition: translate .22s var(--motion-ease), box-shadow .22s ease, filter .22s ease;
+}
+
+.site-shell :is(a, button, summary):focus-visible {
+  outline: 2px solid #92fff0;
+  outline-offset: 5px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  html[data-motion="full"] .site-shell :is(.primary-button, .download-button, .nav-cta):hover {
+    translate: 0 -2px;
+    box-shadow: 0 10px 30px rgba(78, 233, 214, .18);
+    filter: brightness(1.07);
+  }
+
+  html[data-motion="full"] .site-shell :is(.challenge-card, .bento-card, .impact-card, .release-feature-grid article) {
+    transition: translate .32s var(--motion-ease), border-color .32s ease, box-shadow .32s ease, opacity .65s var(--motion-ease), transform .65s var(--motion-ease);
+  }
+
+  html[data-motion="full"] .site-shell :is(.challenge-card, .bento-card, .impact-card, .release-feature-grid article):hover {
+    translate: 0 -4px;
+    border-color: rgba(102, 231, 216, .3);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, .2), inset 0 1px rgba(126, 255, 232, .06);
+  }
+
+  html[data-motion="full"] .hero-visual:hover .scan-card {
+    box-shadow: 0 38px 90px rgba(0, 0, 0, .4), 0 0 45px rgba(78, 233, 214, .07);
+  }
+}
+
+html[data-motion="full"] .site-shell :is(.primary-button, .download-button, .nav-cta):active {
+  translate: 0 1px;
+}
+
+.site-shell :is(.workflow-preview, .platform-panel, .tech-detail).active {
+  animation: panel-arrive .32s var(--motion-ease) both;
+}
+
+@keyframes panel-arrive {
+  from { opacity: .25; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.site-shell .interactive-background { opacity: .58; }
+.site-shell .scan-line { animation-duration: 6s; }
+.site-shell .float-chip { animation-duration: 7s; }
+.site-shell .orbit-a { animation-duration: 55s; }
+.site-shell .orbit-b { animation-duration: 42s; }
+
+.motion-toggle {
+  position: fixed;
+  z-index: 60;
+  right: 20px;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 13px;
+  border: 1px solid rgba(132, 216, 207, .24);
+  border-radius: 999px;
+  background: rgba(6, 19, 25, .94);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, .22);
+  color: #bfdbd9;
+  font: 14px/1.3 Arial, "Microsoft YaHei", sans-serif;
+  cursor: pointer;
+}
+
+.motion-toggle svg { width: 16px; height: 16px; color: #72dfd2; }
+.motion-toggle:hover { border-color: #72dfd2; color: #eefdfb; }
+.motion-toggle:focus-visible { outline: 2px solid #92fff0; outline-offset: 4px; }
+.motion-toggle:disabled { cursor: default; color: #b8c9cb; }
+
+html[data-page-hidden="true"] .site-shell *,
+html[data-page-hidden="true"] .site-shell *::before,
+html[data-page-hidden="true"] .site-shell *::after {
+  animation-play-state: paused !important;
+}
+
+html[data-motion="reduced"] { scroll-behavior: auto; }
+html[data-motion="reduced"] .site-shell *,
+html[data-motion="reduced"] .site-shell *::before,
+html[data-motion="reduced"] .site-shell *::after {
+  animation: none !important;
+  transition: none !important;
+}
+html[data-motion="reduced"] .site-shell [data-reveal] { opacity: 1; transform: none; }
+html[data-motion="reduced"] .hero-visual .scan-card { transform: rotate(1.5deg); }
+
+@media (max-width: 640px) {
+  .motion-toggle { right: 12px; min-height: 40px; padding: 8px 11px; }
+  .site-shell .interactive-background { opacity: .35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+  .site-shell *, .site-shell *::before, .site-shell *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .site-shell [data-reveal] { opacity: 1 !important; transform: none !important; }
+  .hero-visual .scan-card { transform: rotate(1.5deg) !important; }
+}
